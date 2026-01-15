@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SITE ORCHESTRATOR - Enterprise Multimedia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Inter:wght@400;700;900&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.36.0"
+  }
+}
+</script>
+<style>
+  :root {
+    --heavy-yellow: #EBB700;
+    --industrial-gray: #2D2E30;
+    --asphalt: #1A1A1B;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--asphalt);
+    background-image: 
+      linear-gradient(rgba(26, 26, 27, 0.95), rgba(26, 26, 27, 0.95)),
+      url('https://www.transparenttextures.com/patterns/dark-leather.png');
+  }
+  .industrial-grid {
+    background-size: 40px 40px;
+    background-image: radial-gradient(circle, #333 1px, transparent 1px);
+  }
+  .caution-stripes {
+    background: repeating-linear-gradient(
+      -45deg,
+      #000,
+      #000 10px,
+      var(--heavy-yellow) 10px,
+      var(--heavy-yellow) 20px
+    );
+  }
+  .rivet {
+    width: 8px;
+    height: 8px;
+    background: #444;
+    border-radius: 50%;
+    box-shadow: inset -1px -1px 2px #222, 1px 1px 2px #666;
+  }
+  .metal-plate {
+    background: #2D2E30;
+    border: 2px solid #3F4042;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+  }
+</style>
+</head>
+  <body class="text-gray-100 overflow-hidden">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
