@@ -1,19 +1,20 @@
-
-import React from 'react';
-import { Gear } from './Icons';
+import React, { useContext } from 'react';
+import { ConfigContext } from '../../contexts/ConfigProvider';
 
 interface SpinnerProps {
     text?: string;
 }
 
 const Spinner: React.FC<SpinnerProps> = ({ text }) => {
+  const { safeMode } = useContext(ConfigContext);
+
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
-      <div className="relative">
-        <Gear className="animate-[spin_4s_linear_infinite] h-12 w-12 text-[#EBB700]" />
-        <Gear className="animate-[spin_3s_linear_infinite_reverse] h-6 w-6 text-[#3F4042] absolute -top-2 -right-2" />
+      <div className="relative h-12 w-12">
+        <div className={`absolute inset-0 border-4 border-aura-mauve rounded-full ${safeMode ? '' : 'animate-spin'}`}></div>
+        <div className={`absolute inset-0 border-4 border-t-aura-violet border-l-aura-violet border-b-transparent border-r-transparent rounded-full ${safeMode ? '' : 'animate-spin'}`}></div>
       </div>
-      {text && <p className="text-[#EBB700] font-mono text-xs uppercase tracking-widest font-bold">{text}</p>}
+      {text && <p className="text-aura-cyan font-body text-xs uppercase tracking-widest font-bold animate-pulse">{text}</p>}
     </div>
   );
 };

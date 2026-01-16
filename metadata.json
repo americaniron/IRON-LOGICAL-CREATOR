@@ -1,6 +1,6 @@
 {
-  "name": "Enterprise Multimedia Orchestrator",
-  "description": "A state-of-the-art multimedia generator with a unified interface for Text-to-Image, Text-to-Video, Image-to-Video, and Chat functionalities, leveraging Google's powerful generative AI models.",
+  "name": "IRON MEDIA - Site Orchestrator",
+  "description": "Enterprise multimedia orchestration powered by IRON MEDIA heavy-duty generative systems.",
   "requestFramePermissions": [
     "microphone"
   ]

@@ -1,10 +1,11 @@
-
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import { LiveServerMessage, LiveSession } from "@google/genai";
 import { connectLiveSession, createPcmBlob, decodePcmAudioData, decode } from '../services/geminiService';
+import { SystemStatusContext } from '../contexts/SystemStatusProvider';
 import { Microphone, Bot, User } from './common/Icons';
 import Button from './common/Button';
 import Spinner from './common/Spinner';
+import AudioVisualizer from './common/AudioVisualizer';
 
 type ConnectionState = "idle" | "connecting" | "connected" | "closing" | "closed" | "error";
 
@@ -15,24 +16,35 @@ interface TranscriptEntry {
 }
 
 const LiveConversationPanel: React.FC = () => {
+    const { notify } = useContext(SystemStatusContext);
     const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
     const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+    const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
     const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
+    const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
     const audioInfrastructureRef = useRef<{
         inputAudioContext: AudioContext,
         outputAudioContext: AudioContext,
         stream: MediaStream,
-        scriptProcessor: ScriptProcessorNode,
         sources: Set<AudioBufferSourceNode>,
-        nextStartTime: number,
     } | null>(null);
+    const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [transcript]);
 
     const stopConversation = useCallback(() => {
         if (!audioInfrastructureRef.current || connectionState === 'closing' || connectionState === 'closed') return;
         setConnectionState("closing");
+        notify("COMM_LINK_TERMINATED", "warning");
         
-        audioInfrastructureRef.current.scriptProcessor.disconnect();
+        audioWorkletNodeRef.current?.disconnect();
         audioInfrastructureRef.current.stream.getTracks().forEach(track => track.stop());
         
         sessionPromiseRef.current?.then(session => session.close());
@@ -43,34 +55,48 @@ const LiveConversationPanel: React.FC = () => {
         audioInfrastructureRef.current.inputAudioContext.close();
         audioInfrastructureRef.current.outputAudioContext.close();
         audioInfrastructureRef.current = null;
+        setMediaStream(null);
 
         setConnectionState("closed");
-    }, [connectionState]);
+    }, [connectionState, notify]);
+
+    useEffect(() => {
+        const handleHalt = () => {
+          stopConversation();
+          setTranscript([]);
+        };
+        window.addEventListener('emergency-halt', handleHalt);
+        return () => window.removeEventListener('emergency-halt', handleHalt);
+    }, [stopConversation]);
 
 
     const startConversation = async () => {
         if (connectionState === "connecting" || connectionState === "connected") return;
         setConnectionState("connecting");
+        notify("IGNITING_COMM_LINK", "info");
         setTranscript([]);
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            setMediaStream(stream);
             
             const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             const outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             
+            await inputAudioContext.audioWorklet.addModule('audio-processor.js');
+            const workletNode = new AudioWorkletNode(inputAudioContext, 'audio-processor');
             const source = inputAudioContext.createMediaStreamSource(stream);
-            const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
-            
-            scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
-                const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                const pcmBlob = createPcmBlob(inputData);
+            source.connect(workletNode);
+            workletNode.connect(inputAudioContext.destination);
+
+            audioWorkletNodeRef.current = workletNode;
+
+            workletNode.port.onmessage = (event) => {
+                const pcmBlob = createPcmBlob(event.data);
                 sessionPromiseRef.current?.then((session) => {
                     session.sendRealtimeInput({ media: pcmBlob });
                 });
             };
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(inputAudioContext.destination);
 
             let nextStartTime = 0;
             const sources = new Set<AudioBufferSourceNode>();
@@ -81,6 +107,7 @@ const LiveConversationPanel: React.FC = () => {
             sessionPromiseRef.current = connectLiveSession({
                 onopen: () => {
                     setConnectionState("connected");
+                    notify("SATELLITE_LINK_ESTABLISHED", "success");
                 },
                 onmessage: async (message: LiveServerMessage) => {
                     if (message.serverContent?.outputTranscription) {
@@ -125,9 +152,19 @@ const LiveConversationPanel: React.FC = () => {
                         nextStartTime += audioBuffer.duration;
                         sources.add(sourceNode);
                     }
+                    
+                    const interrupted = message.serverContent?.interrupted;
+                    if (interrupted) {
+                      for (const source of sources.values()) {
+                        source.stop();
+                        sources.delete(source);
+                      }
+                      nextStartTime = 0;
+                    }
                 },
                 onerror: (e) => {
                     console.error("Live session error:", e);
+                    notify(`COMM_LINK_ERROR: ${e.type}`, "error");
                     setConnectionState("error");
                     stopConversation();
                 },
@@ -140,13 +177,12 @@ const LiveConversationPanel: React.FC = () => {
                 inputAudioContext,
                 outputAudioContext,
                 stream,
-                scriptProcessor,
                 sources,
-                nextStartTime,
             };
 
         } catch (error) {
             console.error("Failed to start conversation:", error);
+            notify(`MICROPHONE_ACCESS_DENIED`, "error");
             setConnectionState("error");
         }
     };
@@ -166,9 +202,12 @@ const LiveConversationPanel: React.FC = () => {
                 return <Spinner text="Establishing Satellite Link..." />;
             case 'connected':
                 return (
-                    <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_#dc2626]"></div>
-                        <span className="text-red-500 font-black tracking-[0.2em] uppercase text-sm animate-pulse">Live Transmission</span>
+                    <div className="flex flex-col items-center gap-3 w-full">
+                        <div className="flex items-center gap-3">
+                            <div className="h-3 w-3 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_#dc2626]"></div>
+                            <span className="text-red-500 font-black tracking-[0.2em] uppercase text-sm animate-pulse">Live Transmission</span>
+                        </div>
+                        {mediaStream && <AudioVisualizer stream={mediaStream} />}
                     </div>
                 );
             case 'closing':
@@ -181,36 +220,30 @@ const LiveConversationPanel: React.FC = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto flex flex-col h-full industrial-grid p-6">
-            <div className="flex justify-between items-center mb-6 border-b-4 border-[#2D2E30] pb-4">
+        <div className="max-w-5xl mx-auto flex flex-col h-full control-panel p-6">
+            <div className="flex justify-between items-center mb-6 border-b-4 border-industrial-gray pb-4">
                 <h3 className="text-2xl font-black text-white uppercase tracking-tighter">// VOIP_COMM_LINK_07 _</h3>
-                <div className="flex items-center gap-4">
-                     <div className="caution-stripes h-4 w-12 opacity-30"></div>
-                     <span className="text-[10px] font-mono text-gray-500 bg-black px-2 py-1 border border-[#3F4042]">ENCRYPTED_VOICE_MOD_V3</span>
-                </div>
             </div>
             
-            <div className="bg-black/60 border-4 border-[#2D2E30] p-8 flex-1 flex flex-col relative">
+            <div className="bg-asphalt border-4 border-industrial-gray p-8 flex-1 flex flex-col relative">
                 <div className="rivet absolute top-2 left-2"></div>
                 <div className="rivet absolute top-2 right-2"></div>
                 <div className="rivet absolute bottom-2 left-2"></div>
                 <div className="rivet absolute bottom-2 right-2"></div>
                 
-                <div className="flex-1 mb-8 overflow-y-auto pr-4 space-y-8 scrollbar-thin scrollbar-thumb-[#EBB700]">
+                <div className="flex-1 mb-8 overflow-y-auto pr-4 space-y-8 scrollbar-thin">
                     {transcript.map((entry) => (
                         <div key={entry.id} className={`flex items-start gap-4 ${entry.sender === 'user' ? 'justify-end' : ''}`}>
                             {entry.sender === 'bot' && (
-                                <div className="p-2 bg-[#EBB700] border-2 border-black rounded-sm shadow-lg">
+                                <div className="p-2 bg-cyan-400 border-2 border-black rounded-sm shadow-lg">
                                     <Bot className="h-5 w-5 text-black" />
                                 </div>
                             )}
                             <div className={`relative max-w-lg p-5 border-2 ${
                                 entry.sender === 'user' 
-                                    ? 'bg-[#2D2E30] border-[#EBB700] text-white' 
-                                    : 'bg-black border-[#3F4042] text-[#EBB700] font-mono'
+                                    ? 'bg-industrial-gray border-cyan-400 text-white' 
+                                    : 'bg-asphalt border-industrial-gray text-cyan-400 font-mono'
                             }`}>
-                                <div className="rivet absolute -top-1 -left-1"></div>
-                                <div className="rivet absolute -bottom-1 -right-1"></div>
                                 <p className="leading-relaxed font-bold tracking-tight uppercase text-sm">{entry.text}</p>
                             </div>
                             {entry.sender === 'user' && (
@@ -220,8 +253,9 @@ const LiveConversationPanel: React.FC = () => {
                             )}
                         </div>
                     ))}
+                    <div ref={transcriptEndRef} />
                      {transcript.length === 0 && connectionState === 'connected' && (
-                        <div className="text-center text-[#EBB700] pt-20 animate-pulse font-mono uppercase tracking-[0.2em]">
+                        <div className="text-center text-cyan-400 pt-20 animate-pulse font-mono uppercase tracking-[0.2em]">
                             <p className="text-lg font-black">(( TRANSMITTING ))</p>
                             <p className="text-xs mt-2 text-gray-500">Awaiting_Voice_Data_Stream...</p>
                         </div>
@@ -234,12 +268,14 @@ const LiveConversationPanel: React.FC = () => {
                     )}
                 </div>
 
-                <div className="flex-shrink-0 pt-6 border-t-4 border-[#2D2E30] flex flex-col items-center">
-                    <div className="h-12 mb-6 flex items-center justify-center w-full">{renderStatus()}</div>
+                <div className="flex-shrink-0 pt-6 border-t-4 border-industrial-gray flex flex-col items-center">
+                    <div className="h-20 mb-6 flex items-center justify-center w-full">{renderStatus()}</div>
                     {connectionState !== 'connected' && connectionState !== 'connecting' ? (
                         <Button 
                             onClick={startConversation} 
-                            disabled={connectionState === 'connecting'}
+                            // FIX: The original check `connectionState === 'connecting'` was redundant within its conditional block and caused a type error.
+                            // The button should logically be disabled while the connection is in the process of closing.
+                            disabled={connectionState === 'closing'}
                             className="w-full max-w-sm !py-6 !text-2xl"
                         >
                             <Microphone className="h-8 w-8 mr-4"/>

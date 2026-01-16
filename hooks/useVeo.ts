@@ -1,6 +1,5 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { startVideoGeneration, checkVideoOperationStatus, fetchVideoResult } from '../services/geminiService';
+import { startVideoGeneration, extendVideoGeneration, checkVideoOperationStatus, fetchVideoResult } from '../services/geminiService';
 import { VIDEO_GENERATION_MESSAGES } from '../constants';
 
 interface GenerateVideoParams {
@@ -9,7 +8,8 @@ interface GenerateVideoParams {
   aspectRatio: string;
   resolution: string;
   model: string;
-  imageFile?: File;
+  imageFile?: File | null;
+  imageBase64?: string;
 }
 
 export const useVeo = () => {
@@ -31,57 +31,85 @@ export const useVeo = () => {
     setIsLoading(true);
     setError(null);
     setResultUrl(null);
-    setProgressMessage(VIDEO_GENERATION_MESSAGES[0]);
+    setProgressMessage("INITIALIZING BASE RIG ASSEMBLY...");
 
     try {
+      const requiresExtension = params.duration > 8;
+      const generationModel = requiresExtension ? 'veo-3.1-generate-preview' : params.model;
+
       let operation = await startVideoGeneration(
         params.prompt,
-        params.duration,
         params.aspectRatio,
         params.resolution,
-        params.model,
-        params.imageFile
+        generationModel,
+        { file: params.imageFile, base64: params.imageBase64 }
       );
       
       let messageIndex = 1;
-
       while (!operation.done) {
         if (!isMounted.current) return;
         await new Promise(resolve => setTimeout(resolve, 10000));
         operation = await checkVideoOperationStatus(operation);
-        
         if (!isMounted.current) return;
         setProgressMessage(VIDEO_GENERATION_MESSAGES[messageIndex % VIDEO_GENERATION_MESSAGES.length]);
         messageIndex++;
       }
       
-      if (!isMounted.current) return;
-      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+      let currentVideo = operation.response?.generatedVideos?.[0]?.video;
+      let currentDuration = 8; 
 
-      if (downloadLink) {
-        setProgressMessage('Finalizing video...');
+      while (currentDuration < params.duration && requiresExtension) {
+        if (!isMounted.current) return;
+        if (!currentVideo) throw new Error("Could not retrieve video from initial generation step.");
+        
+        setProgressMessage(`EXTENDING VIDEO... (${currentDuration}s / ${params.duration}s)`);
+        
+        let extensionOperation = await extendVideoGeneration(
+          'something unexpected happens',
+          currentVideo,
+          params.aspectRatio
+        );
+
+        let extMessageIndex = 0;
+        while (!extensionOperation.done) {
+            if (!isMounted.current) return;
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            extensionOperation = await checkVideoOperationStatus(extensionOperation);
+            if (!isMounted.current) return;
+            setProgressMessage(`EXTENDING: ${VIDEO_GENERATION_MESSAGES[extMessageIndex % VIDEO_GENERATION_MESSAGES.length]}`);
+            extMessageIndex++;
+        }
+        
+        currentVideo = extensionOperation.response?.generatedVideos?.[0]?.video;
+        currentDuration += 7;
+      }
+
+      if (currentVideo?.uri) {
+        if (!isMounted.current) return;
+        setProgressMessage("FINALIZING ASSET...");
+        const downloadLink = currentVideo.uri;
         const finalUrl = await fetchVideoResult(downloadLink);
         if (isMounted.current) {
           setResultUrl(finalUrl);
         }
       } else {
-        throw new Error('Video generation completed, but no download link was found.');
+        throw new Error("Video generation completed, but no video URI found.");
       }
-    } catch (err) {
+    } catch (err: any) {
         if (isMounted.current) {
-            const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during video generation.';
-            setError(errorMessage);
-            if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('403') || errorMessage.includes('Requested entity was not found')) {
+            if (err instanceof Error && (err.message.includes('Requested entity was not found'))) {
                 resetKeySelection();
+                setError('ACCESS DENIED: AUTHORIZE_PAID_KEY_REQUIRED.');
+            } else {
+                setError(err instanceof Error ? err.message.toUpperCase() : 'UNKNOWN_ENGINE_FAILURE.');
             }
         }
     } finally {
         if (isMounted.current) {
             setIsLoading(false);
-            setProgressMessage('');
         }
     }
   }, []);
-
+  
   return { isLoading, error, resultUrl, progressMessage, generateVideo };
 };

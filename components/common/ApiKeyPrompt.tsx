@@ -8,21 +8,20 @@ interface ApiKeyPromptProps {
 }
 
 const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ modelName, onSelectKey }) => (
-  <div className="bg-orange-600/20 border-l-8 border-orange-500 p-6 relative overflow-hidden group" role="alert">
-    <div className="caution-stripes h-1 absolute top-0 left-0 right-0 opacity-20"></div>
+  <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-6 rounded-md" role="alert">
     <div className="space-y-4">
         <div>
-            <strong className="font-mono text-orange-500 uppercase tracking-[0.2em] block mb-2">!! ACCESS_PERMISSION_REQUIRED !!</strong>
-            <p className="text-sm text-gray-300 font-mono">
-                The <span className="text-white font-bold">{modelName.toUpperCase()}</span> assembly engine requires valid clearance (Paid API Key) from a registered Google Cloud project with active billing.
+            <strong className="font-heading text-yellow-400 uppercase tracking-wider block mb-2">Authorization Required</strong>
+            <p className="text-sm text-aura-gray font-body">
+                The <span className="text-aura-light font-bold">{modelName}</span> module requires a valid API Key from a Google Cloud project with billing enabled.
             </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 pt-2">
-          <Button onClick={onSelectKey} variant="warning" className="text-xs !py-2">
-            SUBMIT CLEARANCE
+          <Button onClick={onSelectKey} variant="secondary" size="sm" className="!border-yellow-500 !text-yellow-400 hover:!bg-yellow-500/20">
+            Select API Key
           </Button>
-          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="flex items-center text-[10px] font-mono uppercase text-gray-500 hover:text-orange-400 underline transition-colors">
-            Review_Billing_Documentation_Ref_402
+          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="flex items-center text-xs font-body uppercase text-aura-gray hover:text-yellow-400 underline transition-colors">
+            Billing Documentation
           </a>
         </div>
     </div>

@@ -1,13 +1,23 @@
-
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Message } from '../types';
-import { generateChatResponse } from '../services/geminiService';
-import { Send, User, Bot } from './common/Icons';
+import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
+import { Message, Task, LogSeverity } from '../types';
+import { AssetContext } from '../contexts/AssetProvider';
+import { SystemStatusContext } from '../contexts/SystemStatusProvider';
+import { generateChatStream } from '../services/geminiService';
+import { Send, User, Bot, Image, Video } from './common/Icons';
 import Spinner from './common/Spinner';
+import Input from './common/Input';
+import Button from './common/Button';
+
+interface MessageWithSources extends Message {
+  sources?: any[];
+}
 
 const ChatPanel: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: "OPERATIONS ONLINE. LOGGING IN AS COMMANDER. STATE YOUR FABRICATION REQUIREMENTS.", sender: 'bot' }
+  const { setPipe } = useContext(AssetContext);
+  const { logOperation, notify } = useContext(SystemStatusContext);
+
+  const [messages, setMessages] = useState<MessageWithSources[]>([
+    { id: '1', text: "AURA Core Interface online. Awaiting your directive.", sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,73 +34,171 @@ const ChatPanel: React.FC = () => {
   const handleSend = useCallback(async () => {
     if (input.trim() === '' || isLoading) return;
 
-    const userMessage: Message = { id: Date.now().toString(), text: input, sender: 'user' };
+    const startTime = Date.now();
+    const userMessage: MessageWithSources = { id: Date.now().toString(), text: input, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
-    const botTypingMessage: Message = { id: (Date.now() + 1).toString(), text: '', sender: 'bot', isTyping: true };
-    setMessages(prev => [...prev, botTypingMessage]);
+    const botMessageId = (Date.now() + 1).toString();
+    const botMessage: MessageWithSources = { id: botMessageId, text: '', sender: 'bot', isStreaming: true, sources: [] };
+    setMessages(prev => [...prev, botMessage]);
+
+    let fullText = "";
+    let accumulatedSources: any[] = [];
 
     try {
-      const response = await generateChatResponse(input);
-      const botMessage: Message = { id: (Date.now() + 2).toString(), text: response.toUpperCase(), sender: 'bot' };
-      setMessages(prev => prev.filter(m => !m.isTyping).concat(botMessage));
-    } catch (error) {
-      const errorMessage: Message = { id: (Date.now() + 2).toString(), text: 'CRITICAL ERROR: SIGNAL LOST. RETRY COMM LINK.', sender: 'bot' };
-      setMessages(prev => prev.filter(m => !m.isTyping).concat(errorMessage));
+      const stream = generateChatStream(input);
+      for await (const chunk of stream) {
+        fullText += (chunk.text || "");
+        if (chunk.groundingChunks && chunk.groundingChunks.length > 0) {
+          accumulatedSources = [...accumulatedSources, ...chunk.groundingChunks];
+        }
+
+        setMessages(prev => prev.map(m => m.id === botMessageId ? { 
+          ...m, 
+          text: fullText,
+          sources: accumulatedSources.length > 0 ? Array.from(new Set(accumulatedSources.map(s => JSON.stringify(s)))).map(s => JSON.parse(s)) : []
+        } : m));
+      }
+      setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, isStreaming: false } : m));
+      
+      logOperation({
+        message: `Chat Session Complete: ${input.substring(0, 20)}...`,
+        severity: LogSeverity.INFO,
+        provider: 'iron',
+        latency: Date.now() - startTime
+      });
+    } catch (error: any) {
+      const errorMessageText = 'Connection error. Please check network and try again.';
+      setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, text: errorMessageText, isStreaming: false } : m));
+      
+      logOperation({
+        message: `Chat Fault: ${error.message || 'Unknown'}`,
+        severity: LogSeverity.ERROR,
+        provider: 'iron',
+        latency: Date.now() - startTime
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading]);
+  }, [input, isLoading, logOperation, notify]);
+
+  const pipeToGenerator = (text: string, task: Task) => {
+    setPipe(text);
+    window.location.hash = `#/${task}`;
+  };
+
+  const copyIntel = (text: string) => {
+    navigator.clipboard.writeText(text);
+    notify("Response copied to clipboard", "success");
+  };
 
   return (
-    <div className="flex flex-col h-full max-w-5xl mx-auto industrial-grid p-6">
-      <div className="flex-1 overflow-y-auto pr-4 space-y-8 pb-4">
+    <div className="flex flex-col h-full max-w-5xl mx-auto control-panel p-4 md:p-6 shadow-2xl">
+       <div className="flex-1 overflow-y-auto pr-1 md:pr-4 space-y-6 md:space-y-8 pb-4 scrollbar-thin">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
+          <div key={msg.id} className={`flex items-start gap-2 md:gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
             {msg.sender === 'bot' && (
-              <div className="p-3 bg-[#EBB700] border-2 border-black rounded-sm shadow-lg">
-                <Bot className="h-6 w-6 text-black" />
+              <div className="p-2 md:p-2.5 bg-aura-violet rounded-full shadow-lg shrink-0">
+                <Bot className="h-4 w-4 md:h-5 md:w-5 text-white" />
               </div>
             )}
-            <div className={`relative max-w-lg p-5 border-2 ${
+            <div className={`relative max-w-[85%] sm:max-w-xl group ${
               msg.sender === 'user' 
-                ? 'bg-[#2D2E30] border-[#EBB700] text-white' 
-                : 'bg-black border-[#3F4042] text-[#EBB700] font-mono'
+                ? 'bg-aura-mauve/50 rounded-lg rounded-br-none' 
+                : 'bg-aura-slate rounded-lg rounded-bl-none'
             }`}>
-              <div className="rivet absolute -top-1 -left-1"></div>
-              <div className="rivet absolute -bottom-1 -right-1"></div>
-              {msg.isTyping ? <Spinner text="PROCESSING DATA..." /> : <p className="leading-relaxed font-bold tracking-tight uppercase text-sm">{msg.text}</p>}
+              <div className="px-4 py-3">
+              {msg.isTyping ? <Spinner text="THINKING..." /> : (
+                <>
+                  <div className="prose prose-sm prose-invert text-aura-light whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: msg.text + (msg.isStreaming ? '▍' : '') }}></div>
+                  
+                  {msg.sources && msg.sources.length > 0 && !msg.isStreaming && (
+                    <div className="mt-4 pt-3 border-t border-aura-mauve/50 space-y-2">
+                      <p className="text-[10px] text-aura-gray font-body uppercase tracking-widest">Sources:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {msg.sources.map((source, idx) => (
+                          source.web && (
+                            <a 
+                              key={idx} 
+                              href={source.web.uri} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="bg-aura-indigo border border-aura-mauve/50 px-2 py-1 rounded-md text-[10px] font-body hover:border-aura-cyan hover:text-aura-cyan transition-all flex items-center gap-2 group/cite"
+                            >
+                              <span className="text-aura-cyan group-hover/cite:text-aura-light">[{idx + 1}]</span>
+                              <span className="truncate max-w-[150px]">{source.web.title || 'Web Result'}</span>
+                            </a>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {msg.sender === 'bot' && !msg.isStreaming && msg.text.length > 10 && (
+                    <div className="mt-4 flex flex-wrap gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => copyIntel(msg.text)}
+                        className="flex items-center gap-1.5 text-[10px] font-body bg-aura-mauve/50 hover:bg-aura-mauve text-aura-light px-2 py-1 rounded-md transition-all uppercase"
+                      >
+                        Copy
+                      </button>
+                      <button 
+                        onClick={() => pipeToGenerator(msg.text, Task.TextToImage)}
+                        className="flex items-center gap-1.5 text-[10px] font-body bg-aura-mauve/50 hover:bg-aura-mauve text-aura-light px-2 py-1 rounded-md transition-all uppercase"
+                      >
+                        <Image className="h-3 w-3" /> Pipe to Image
+                      </button>
+                      <button 
+                        onClick={() => pipeToGenerator(msg.text, Task.TextToVideo)}
+                        className="flex items-center gap-1.5 text-[10px] font-body bg-aura-mauve/50 hover:bg-aura-mauve text-aura-light px-2 py-1 rounded-md transition-all uppercase"
+                      >
+                        <Video className="h-3 w-3" /> Pipe to Video
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+              </div>
             </div>
             {msg.sender === 'user' && (
-              <div className="p-3 bg-white border-2 border-black rounded-sm shadow-lg">
-                <User className="h-6 w-6 text-black" />
+              <div className="p-2 md:p-2.5 bg-aura-light rounded-full shadow-lg shrink-0">
+                <User className="h-4 w-4 md:h-5 md:w-5 text-aura-slate" />
               </div>
             )}
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="mt-8 pt-6 border-t-4 border-[#2D2E30]">
-        <div className="flex items-center bg-black border-2 border-[#3F4042] p-1 focus-within:border-[#EBB700] transition-colors">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="INPUT COMMAND OR COORDINATES..."
-            className="flex-1 bg-transparent border-none focus:ring-0 text-white font-mono placeholder-gray-700 px-6 uppercase text-sm"
-            disabled={isLoading}
-          />
-          <button
-            onClick={handleSend}
+      <div className="mt-4 pt-4 border-t border-aura-mauve/50">
+        <form 
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+          className="flex items-start gap-2"
+        >
+          <div className="flex-1">
+            <Input
+              label="Input Command"
+              id="chat-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => {if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
+              placeholder="Enter your directive..."
+              disabled={isLoading}
+              className="!uppercase-off"
+            />
+          </div>
+          <Button
+            type="submit"
             disabled={isLoading || !input.trim()}
-            className="p-4 bg-[#EBB700] text-black hover:bg-[#D4A500] disabled:bg-gray-800 disabled:text-gray-600 transition-colors"
+            variant="primary"
+            className="!p-3.5"
+            size="md"
+            throttleMs={500}
           >
             <Send className="h-6 w-6" />
-          </button>
-        </div>
+          </Button>
+        </form>
       </div>
     </div>
   );

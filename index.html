@@ -1,65 +1,145 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SITE ORCHESTRATOR - Enterprise Multimedia</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.x.ai https://image.pollinations.ai https://storage.googleapis.com https://picsum.photos; shadow-root 'self';">
+    <title>AURA Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Inter:wght@400;700;900&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.36.0"
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+    "@google/genai": "https://esm.sh/@google/genai@1.36.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "react/": "https://esm.sh/react@18.2.0/"
   }
 }
 </script>
 <style>
   :root {
-    --heavy-yellow: #EBB700;
-    --industrial-gray: #2D2E30;
-    --asphalt: #1A1A1B;
+    --aura-indigo: #05050A;
+    --aura-slate: #0F1016;
+    --aura-mauve: #2E324A;
+    --aura-violet: #D946EF;
+    --aura-cyan: #00E0FF;
+    --aura-light: #FFFFFF;
+    --aura-gray: #94A3B8;
+
+    --font-heading: 'Orbitron', sans-serif;
+    --font-body: 'Share Tech Mono', monospace;
   }
+  
   body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--asphalt);
-    background-image: 
-      linear-gradient(rgba(26, 26, 27, 0.95), rgba(26, 26, 27, 0.95)),
-      url('https://www.transparenttextures.com/patterns/dark-leather.png');
+    font-family: var(--font-body);
+    background-color: var(--aura-indigo);
+    color: var(--aura-gray);
+    overflow: hidden;
+    position: relative;
+    margin: 0;
   }
-  .industrial-grid {
-    background-size: 40px 40px;
-    background-image: radial-gradient(circle, #333 1px, transparent 1px);
+
+  /* Animated Gradient Background */
+  body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(45deg, var(--aura-indigo), var(--aura-slate), var(--aura-indigo));
+    background-size: 400% 400%;
+    animation: gradient-bg 25s ease infinite;
+    z-index: -1;
   }
-  .caution-stripes {
-    background: repeating-linear-gradient(
-      -45deg,
-      #000,
-      #000 10px,
-      var(--heavy-yellow) 10px,
-      var(--heavy-yellow) 20px
-    );
+
+  @keyframes gradient-bg {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
-  .rivet {
-    width: 8px;
-    height: 8px;
-    background: #444;
-    border-radius: 50%;
-    box-shadow: inset -1px -1px 2px #222, 1px 1px 2px #666;
+
+  /* Hex Grid Overlay */
+  .hex-grid {
+     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg id='hexagons' fill='%23161b33' fill-opacity='0.2' fill-rule='nonzero'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.99-7.5L26 15v18.5l-12.99 7.5L0 33.5z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+     background-repeat: repeat;
+     position: relative;
   }
-  .metal-plate {
-    background: #2D2E30;
-    border: 2px solid #3F4042;
-    box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+  
+  #root {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
+
+  /* Main Panel Styles */
+  .control-panel {
+    background-color: rgba(15, 16, 22, 0.7); /* --aura-slate with opacity */
+    border: 1px solid var(--aura-mauve);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 25px rgba(0,0,0,0.5), inset 0 0 10px rgba(46, 50, 74, 0.3);
+    border-radius: 8px;
+  }
+
+  .monitor-screen {
+    background-color: rgba(5, 5, 10, 0.6); /* --aura-indigo with opacity */
+    border: 1px solid var(--aura-mauve);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 0 30px rgba(217, 70, 239, 0.1), inset 0 0 20px rgba(0,0,0,0.7);
+    border-radius: 8px;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--aura-mauve) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--aura-mauve);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: var(--aura-violet);
+  }
+
+  .focus-ring:focus-visible, input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--aura-violet);
+    outline-offset: 2px;
+    box-shadow: 0 0 15px var(--aura-violet);
+    border-color: var(--aura-violet) !important;
+  }
+
+  /* Remove old flicker effect */
+  .flicker-active #root, .interference-active::before {
+      animation: none;
+      display: none;
+  }
+  
+  /* Animation Utilities */
+  .animate-in { animation: animate-in 0.5s ease-out forwards; }
+  @keyframes animate-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .slide-in-from-right-full { animation: slide-in-from-right-full 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+  @keyframes slide-in-from-right-full { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  
+  .fade-in-0 { animation: fade-in-0 0.5s ease forwards; }
+  @keyframes fade-in-0 { from { opacity: 0; } to { opacity: 1; } }
+
+  .zoom-in { animation: zoom-in 0.5s ease forwards; }
+  @keyframes zoom-in { from { transform: scale(0.95); } to { transform: scale(1); } }
 </style>
 </head>
-  <body class="text-gray-100 overflow-hidden">
-    <div id="root"></div>
+  <body class="text-gray-300">
+    <div id="root">
+        <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: #05050A; font-family: 'Orbitron', monospace; color: #D946EF; text-transform: uppercase; letter-spacing: 0.5em;">
+            AURA_INTERFACE_ONLINE_
+        </div>
+    </div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
