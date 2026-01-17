@@ -13,34 +13,30 @@ interface State {
  * ErrorBoundary class to catch rendering errors in the component tree.
  */
 class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: undefined,
-    };
-    this.handleRecovery = this.handleRecovery.bind(this);
-  }
+  public state: State = {
+    hasError: false,
+    error: undefined,
+  };
 
-  static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log errors for telemetry
     console.error("SYSTEM_CRITICAL_RENDER_FAULT:", error, errorInfo);
   }
 
   // Bound handler to recover from error state
-  handleRecovery(): void {
+  private handleRecovery = (): void => {
     // Re-initialize state to recover from the error boundary
     this.setState({ hasError: false, error: undefined });
     window.location.hash = '#/';
     window.location.reload();
-  }
+  };
 
-  render(): ReactNode {
+  public render(): ReactNode {
     if (this.state.hasError) {
       // Minimal HTML structure to ensure it renders even if other components are broken
       return (
