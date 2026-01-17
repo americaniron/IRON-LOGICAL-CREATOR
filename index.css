@@ -15,8 +15,9 @@
     --guest-green: #22c55e;
     --grok-magenta: #d946ef;
 
-    --font-heading: 'Black Ops One', sans-serif;
-    --font-body: 'Share Tech Mono', monospace;
+    /* Font fallbacks - Google Fonts are enhancements, system fonts work fine */
+    --font-heading: 'Black Ops One', 'Impact', 'Arial Black', sans-serif;
+    --font-body: 'Share Tech Mono', 'Courier New', 'Courier', monospace;
   }
   
   body {

@@ -20,8 +20,8 @@ export default {
         'grok-magenta': '#d946ef',
       },
       fontFamily: {
-        heading: ['Black Ops One', 'sans-serif'],
-        body: ['Share Tech Mono', 'monospace'],
+        heading: ['Black Ops One', 'Impact', 'Arial Black', 'sans-serif'],
+        body: ['Share Tech Mono', 'Courier New', 'Courier', 'monospace'],
       },
     },
   },
