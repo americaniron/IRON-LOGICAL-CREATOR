@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import './index.css';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -9,11 +10,15 @@ import { ConfigProvider } from './contexts/ConfigProvider';
 import { SystemStatusProvider } from './contexts/SystemStatusProvider';
 import { AssetProvider } from './contexts/AssetProvider';
 
+console.log("BOOT: index.tsx loaded");
+
 const container = document.getElementById('root');
 
 if (container) {
   try {
+    console.log("BOOT: root created");
     const root = createRoot(container);
+    console.log("BOOT: App render started");
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
@@ -29,6 +34,7 @@ if (container) {
         </ErrorBoundary>
       </React.StrictMode>
     );
+    console.log("BOOT: App render completed");
 
     // After React mounts, remove the boot screen for a smooth transition.
     const bootScreen = document.getElementById('boot-screen');
