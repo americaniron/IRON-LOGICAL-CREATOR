@@ -4,10 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.x.ai; shadow-root 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.x.ai;">
     <title>IRON MEDIA - Site Orchestrator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- Google Fonts - loaded asynchronously as enhancement, not blocking -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet"></noscript>
   <script type="importmap">
 {
   "imports": {
@@ -25,110 +28,6 @@
   // POLYFILL: Ensure 'process' exists for modules that rely on it
   window.process = window.process || { env: { NODE_ENV: 'development' } };
 </script>
-<style>
-  :root {
-    --heavy-yellow: #FFC20E;
-    --safety-orange: #F97316;
-    --asphalt: #111317;
-    --steel: #23272F;
-    --industrial-gray: #4A515A;
-    --text-light: #EAEAEA;
-    --text-muted: #88929E;
-    
-    --guest-green: #22c55e;
-    --grok-magenta: #d946ef;
-
-    --font-heading: 'Black Ops One', sans-serif;
-    --font-body: 'Share Tech Mono', monospace;
-  }
-  
-  body {
-    font-family: var(--font-body);
-    background-color: var(--asphalt);
-    color: var(--text-muted);
-    overflow: hidden;
-    position: relative;
-    margin: 0;
-  }
-
-  .blueprint-grid {
-    background-color: var(--asphalt);
-    background-image: 
-        linear-gradient(rgba(74, 81, 90, 0.2) 1px, transparent 1px), 
-        linear-gradient(90deg, rgba(74, 81, 90, 0.2) 1px, transparent 1px);
-    background-size: 25px 25px;
-  }
-  
-  #root {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .control-panel {
-    background-color: rgba(35, 39, 47, 0.9);
-    border: 2px solid #000;
-    border-top-color: var(--industrial-gray);
-    border-left-color: var(--industrial-gray);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 2px 5px rgba(0,0,0,0.3);
-  }
-
-  .monitor-screen {
-    background-color: rgba(17, 19, 23, 0.95);
-    border: 1px solid var(--industrial-gray);
-    backdrop-filter: blur(4px);
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
-    position: relative;
-  }
-  
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: var(--heavy-yellow) var(--asphalt);
-  }
-
-  .scrollbar-thumb-guest-green::-webkit-scrollbar-thumb { background-color: var(--guest-green); }
-  .scrollbar-thumb-grok-magenta::-webkit-scrollbar-thumb { background-color: var(--grok-magenta); }
-  
-  .animate-in { 
-    animation: slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
-  }
-
-  .focus-ring:focus, .focus-ring:focus-within {
-    outline: 2px solid var(--heavy-yellow);
-    outline-offset: 2px;
-  }
-  
-  @keyframes slide-up-fade {
-    0% { opacity: 0; transform: translateY(15px); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
-  }
-
-  #boot-screen {
-    transition: opacity 0.5s ease;
-  }
-
-  .caution-stripes {
-    background-image: repeating-linear-gradient(
-      45deg,
-      var(--heavy-yellow),
-      var(--heavy-yellow) 10px,
-      #000 10px,
-      #000 20px
-    );
-  }
-
-  .rivet {
-      width: 8px; height: 8px; background: #000; border: 1px solid var(--industrial-gray); border-radius: 50%;
-      box-shadow: inset 0 1px 1px rgba(255,255,255,0.2);
-  }
-</style>
 </head>
   <body class="text-gray-300">
     <div id="root">
@@ -150,17 +49,19 @@
         }
       };
       
-      // FAILSAFE: Force remove boot screen if React fails to mount within 3 seconds
+      // FAILSAFE: Force remove boot screen if React fails to mount within 2 seconds (NON-NEGOTIABLE REQUIREMENT)
       setTimeout(() => {
         const bootScreen = document.getElementById('boot-screen');
         if (bootScreen && bootScreen.style.opacity !== '0' && bootScreen.style.display !== 'none') {
-            console.warn("BOOT_TIMEOUT: Forcing boot screen removal via failsafe.");
+            console.warn("BOOT_TIMEOUT: Forcing boot screen removal via 2-second failsafe.");
+            const bootStatus = document.getElementById('boot-status');
+            if (bootStatus) bootStatus.textContent = "FAILSAFE_ENGAGED";
             bootScreen.style.opacity = '0';
             setTimeout(() => {
                 if(bootScreen) bootScreen.style.display = 'none';
             }, 500);
         }
-      }, 3000);
+      }, 2000); // Changed from 3000ms to 2000ms per requirements
     </script>
     <script type="module" src="./index.tsx" onerror="window.onerror('Failed to load module ./index.tsx', 'index.html', 0, 0, null)"></script>
   </body>

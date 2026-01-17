@@ -23,6 +23,10 @@ const Header: React.FC<HeaderProps> = ({ setIsSidebarOpen }) => {
         <h2 className="text-xl md:text-2xl font-heading text-text-light tracking-wider uppercase">
           Site<span className="text-heavy-yellow">_</span>Orchestrator
         </h2>
+        <div className="hidden md:flex items-center gap-2 ml-4 px-3 py-1 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-xs font-body tracking-wider">
+          <span>UI LOADED SUCCESSFULLY</span>
+          <span className="text-green-300">✅</span>
+        </div>
       </div>
       <div className="flex items-center gap-2 md:gap-4 font-body text-[10px] md:text-xs text-text-muted tracking-wider uppercase">
         <div className="text-center hidden sm:block">
