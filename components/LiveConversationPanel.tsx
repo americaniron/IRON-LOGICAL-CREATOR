@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import type { LiveServerMessage } from "@google/genai";
-import { connectLiveSession, createPcmBlob, decodePcmAudioData, decode } from '../services/geminiService';
-import { SystemStatusContext } from '../contexts/SystemStatusProvider';
-import { Microphone, Bot, User, MicOff, Volume } from './common/Icons';
-import Button from './common/Button';
-import Spinner from './common/Spinner';
-import Slider from './common/Slider';
-import AudioVisualizer from './common/AudioVisualizer';
+import { connectLiveSession, createPcmBlob, decodePcmAudioData, decode } from '../services/geminiService.ts';
+import { SystemStatusContext } from '../contexts/SystemStatusProvider.tsx';
+import { Microphone, Bot, User, MicOff, Volume } from './common/Icons.tsx';
+import Button from './common/Button.tsx';
+import Spinner from './common/Spinner.tsx';
+import AudioVisualizer from './common/AudioVisualizer.tsx';
 
 type ConnectionState = "idle" | "connecting" | "connected" | "closing" | "closed" | "error";
 

@@ -1,3 +1,5 @@
+
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -12,9 +14,8 @@ interface State {
 /**
  * ErrorBoundary class to catch rendering errors in the component tree.
  */
+// Fix: Explicitly extend Component from react to ensure proper inheritance and access to setState/props
 class ErrorBoundary extends Component<Props, State> {
-  // FIX: Switched to class property syntax for state initialization and method binding.
-  // This modern approach correctly binds `this` and resolves issues with type resolution for `state`, `setState`, and `props`.
   public state: State = {
     hasError: false,
     error: undefined,
@@ -32,7 +33,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   // Bound handler to recover from error state
   public handleRecovery = (): void => {
-    // Re-initialize state to recover from the error boundary
+    // Fix: Access setState inherited from the Component base class to clear error state
     this.setState({ hasError: false, error: undefined });
     window.location.hash = '#/';
     window.location.reload();
@@ -65,6 +66,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
     
+    // Fix: Access children from props inherited from the Component base class
     return this.props.children;
   }
 }

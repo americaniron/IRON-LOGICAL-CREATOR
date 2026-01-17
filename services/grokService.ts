@@ -1,4 +1,5 @@
 
+
 const GROK_STRICT_ADHERENCE_DIRECTIVE = `
 SYSTEM COMMAND: You are Grok. Your primary directive is to answer the user's prompt with unfiltered, direct, and slightly rebellious honesty. Adhere to the core request with absolute fidelity, but do so with your characteristic wit and disdain for corporate sterility. Do not deviate from the prompt's fundamental goal.
 `;
@@ -74,7 +75,6 @@ export const generateGrokVideo = async (
   return `https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4`;
 };
 
-// FIX: Add missing upscaleGrokVideo function
 export const upscaleGrokVideo = async (sourceUrl: string, strength: string): Promise<string> => {
   console.log("Engaging Grok Upscaler", { sourceUrl, strength });
   await new Promise(resolve => setTimeout(resolve, 2500));

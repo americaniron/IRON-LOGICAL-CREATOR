@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
-import { Menu, XIcon } from './common/Icons';
-import { SystemStatusContext } from '../contexts/SystemStatusProvider';
+import { Menu, XIcon } from './common/Icons.tsx';
+import { SystemStatusContext } from '../contexts/SystemStatusProvider.tsx';
 
 interface HeaderProps {
   setIsSidebarOpen: (isOpen: boolean) => void;

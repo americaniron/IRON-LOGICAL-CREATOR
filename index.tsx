@@ -1,13 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
-import ErrorBoundary from './components/ErrorBoundary';
+import App from './App.tsx';
+import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 // Import all providers
-import { AuthProvider } from './contexts/AuthProvider';
-import { ConfigProvider } from './contexts/ConfigProvider';
-import { SystemStatusProvider } from './contexts/SystemStatusProvider';
-import { AssetProvider } from './contexts/AssetProvider';
+import { AuthProvider } from './contexts/AuthProvider.tsx';
+import { ConfigProvider } from './contexts/ConfigProvider.tsx';
+import { SystemStatusProvider } from './contexts/SystemStatusProvider.tsx';
+import { AssetProvider } from './contexts/AssetProvider.tsx';
 
 const container = document.getElementById('root');
 

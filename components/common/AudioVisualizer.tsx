@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useContext } from 'react';
 import { ConfigContext } from '../../contexts/ConfigProvider';
 
@@ -8,8 +9,6 @@ interface AudioVisualizerProps {
 const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream }) => {
   const { safeMode } = useContext(ConfigContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // FIX: Initialize useRef with null to provide an initial value, resolving the "Expected 1 arguments, but got 0" error
-  // which can occur with stricter TypeScript configurations for React hooks, causing module load failures.
   const animationFrameId = useRef<number | null>(null);
 
   useEffect(() => {

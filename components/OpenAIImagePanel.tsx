@@ -3,11 +3,11 @@ import { generateOpenAIImage } from '../services/openAIService';
 import { ImageResult } from '../types';
 import { useOpenAiKey } from '../hooks/useOpenAiKey';
 import Button from './common/Button';
-import Input from './common/Input';
 import Select from './common/Select';
 import Spinner from './common/Spinner';
 import OpenAiKeyPrompt from './common/OpenAiKeyPrompt';
-import { BrainCircuit, Download } from './common/Icons';
+import WorkbenchHeader from './common/WorkbenchHeader';
+import { Download, Image } from './common/Icons';
 
 const FORGE_MESSAGES = [
     "INITIATING GUEST FORGE PROTOCOLS...",
@@ -31,7 +31,6 @@ const styles = [
     { value: 'vivid', label: 'Vivid (STYLIZED)' }, 
     { value: 'natural', label: 'Natural (PHOTOREAL)' }
 ];
-
 
 const OpenAIImagePanel: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -73,7 +72,6 @@ const OpenAIImagePanel: React.FC = () => {
       addLog("ACCESSING GUEST FORGE RIG...");
       addLog(`MODEL_SELECTION: ${model.toUpperCase()}`);
       
-      // Artificial delay for log immersion
       await new Promise(r => setTimeout(r, 600));
       addLog(FORGE_MESSAGES[1]);
       
@@ -113,18 +111,7 @@ const OpenAIImagePanel: React.FC = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-8 w-full h-full">
       <div className="control-panel p-8 flex flex-col h-full overflow-y-auto scrollbar-thin border-2 border-guest-green/20 order-2 lg:order-1 lg:w-1/2">
-        <div className="flex justify-between items-end mb-8 pb-4 border-b-2 border-industrial-gray">
-          <div>
-              <h3 className="text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
-                DALL-E Forge
-              </h3>
-              <p className="text-[10px] font-mono text-guest-green tracking-[0.4em] uppercase font-bold">GUEST_SYSTEM // ONLINE</p>
-          </div>
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-guest-green/10 border border-guest-green/30">
-            <BrainCircuit className="h-4 w-4 text-guest-green animate-pulse" />
-            <span className="text-[10px] font-mono text-guest-green uppercase">Forge: Prime</span>
-          </div>
-        </div>
+        <WorkbenchHeader title="DALL-E Forge" station="GUEST_SYSTEM" provider="guest" />
         
         <form onSubmit={handleSubmit} className="space-y-8">
             <div className="relative group">
@@ -136,7 +123,7 @@ const OpenAIImagePanel: React.FC = () => {
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="DEFINE VISUAL PARAMETERS, LIGHTING, AND SUBJECT GEOMETRY..."
                 rows={6}
-                className="w-full px-4 py-3 bg-[#111317] border-2 border-[#333840] rounded-none text-white focus:outline-none focus:border-guest-green font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-sm uppercase tracking-wider leading-relaxed"
+                className="w-full px-4 py-3 bg-[#111317] border-2 border-[#333840] rounded-none text-white focus:outline-none focus:border-guest-green font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-sm uppercase tracking-wider leading-relaxed focus-ring"
                 required
                 disabled={isLoading}
                 />
@@ -152,7 +139,7 @@ const OpenAIImagePanel: React.FC = () => {
             />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className={model === 'dall-e-2' ? 'opacity-30' : ''}>
+            <div className={model === 'dall-e-2' ? 'opacity-30 pointer-events-none' : ''}>
                 <Select
                 label="OUTPUT_QUALITY"
                 id="quality"
@@ -162,7 +149,7 @@ const OpenAIImagePanel: React.FC = () => {
                 disabled={model === 'dall-e-2' || isLoading}
                 />
             </div>
-            <div className={model === 'dall-e-2' ? 'opacity-30' : ''}>
+            <div className={model === 'dall-e-2' ? 'opacity-30 pointer-events-none' : ''}>
                 <Select
                 label="AESTHETIC_STYLE"
                 id="style"
@@ -237,7 +224,7 @@ const OpenAIImagePanel: React.FC = () => {
         {!isLoading && !error && !result && (
           <div className="text-center text-gray-800 font-mono uppercase tracking-widest">
             <div className="mb-4 text-4xl opacity-10">
-              <BrainCircuit className="mx-auto h-20 w-20" />
+              <Image className="mx-auto h-20 w-20" />
             </div>
             <p className="text-sm">GUEST_FORGE_IDLE</p>
           </div>

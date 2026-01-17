@@ -1,8 +1,8 @@
 import React, { useContext } from 'react';
-import { Task, Overlay, ClearanceLevel } from '../types';
-import { AuthContext } from '../contexts/AuthProvider';
-import { ConfigContext } from '../contexts/ConfigProvider';
-import { MessageSquare, Image, Video, Film, Speaker, Microphone, BrainCircuit, Lock, Crane, XIcon, Bulldozer, Gear, Palette } from './common/Icons';
+import { Task, Overlay, ClearanceLevel } from '../types.ts';
+import { AuthContext } from '../contexts/AuthProvider.tsx';
+import { ConfigContext } from '../contexts/ConfigProvider.tsx';
+import { MessageSquare, Image, Video, Film, Speaker, Microphone, BrainCircuit, Lock, Crane, XIcon, Bulldozer, Gear, Palette } from './common/Icons.tsx';
 
 interface SidebarProps {
   activeTask: Task;

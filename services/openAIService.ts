@@ -49,21 +49,28 @@ export const generateOpenAIImage = async (
   }
 
   try {
+    const body: any = {
+      model: model,
+      prompt: prompt,
+      n: 1,
+      response_format: "url"
+    };
+
+    if (model === 'dall-e-3') {
+        body.size = "1024x1024";
+        body.quality = quality;
+        body.style = style;
+    } else {
+        body.size = "512x512";
+    }
+
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: model,
-        prompt: prompt,
-        n: 1,
-        size: model === 'dall-e-3' ? "1024x1024" : "512x512",
-        quality: model === 'dall-e-3' ? quality : undefined,
-        style: model === 'dall-e-3' ? style : undefined,
-        response_format: "url"
-      })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {

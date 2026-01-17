@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
-import { Message, Task, LogSeverity } from '../types';
-import { AssetContext } from '../contexts/AssetProvider';
-import { SystemStatusContext } from '../contexts/SystemStatusProvider';
-import { generateChatStream } from '../services/geminiService';
-import { Send, User, Bot, Image, Video } from './common/Icons';
-import Spinner from './common/Spinner';
-import Input from './common/Input';
-import Button from './common/Button';
+import { Message, Task, LogSeverity } from '../types.ts';
+import { AssetContext } from '../contexts/AssetProvider.tsx';
+import { SystemStatusContext } from '../contexts/SystemStatusProvider.tsx';
+import { generateChatStream } from '../services/geminiService.ts';
+import { Send, User, Bot, Image, Video } from './common/Icons.tsx';
+import Spinner from './common/Spinner.tsx';
+import Input from './common/Input.tsx';
+import Button from './common/Button.tsx';
 
 interface MessageWithSources extends Message {
   sources?: any[];
