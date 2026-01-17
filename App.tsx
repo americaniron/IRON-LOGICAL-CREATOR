@@ -91,12 +91,7 @@ const App: React.FC = () => {
   };
 
   return (
-      <div className="flex h-screen w-screen overflow-hidden hex-grid bg-aura-indigo">
-        {/* SUCCESS BADGE */}
-        <div className="fixed bottom-4 left-4 z-[9999] bg-green-500/20 border border-green-500 px-3 py-1 rounded text-[10px] font-mono text-green-400 uppercase tracking-tighter">
-            UI Loaded Successfully ✅
-        </div>
-
+      <div className="flex h-screen w-screen overflow-hidden blueprint-grid bg-asphalt">
         <Sidebar 
           activeTask={activeTask} setActiveTask={handleTaskChange} 
           isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
@@ -111,18 +106,18 @@ const App: React.FC = () => {
           {activeOverlay && (
              <div className="fixed inset-0 z-40">
                 <div 
-                    className="absolute inset-0 bg-black/80 backdrop-blur-sm fade-in-0 duration-300"
+                    className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-300"
                     onClick={() => setActiveOverlay(null)}
                 ></div>
-                <div className="absolute top-0 right-0 h-full w-full max-w-4xl bg-[#0A0B10] border-l border-aura-violet shadow-[0_0_50px_rgba(240,0,255,0.2)] flex flex-col animate-in slide-in-from-right-full duration-300">
-                    <div className="flex justify-between items-center p-6 border-b border-aura-mauve">
+                <div className="absolute top-0 right-0 h-full w-full max-w-4xl bg-steel border-l-4 border-industrial-gray shadow-2xl flex flex-col animate-in slide-in-from-right-full duration-300">
+                    <div className="flex justify-between items-center p-6 border-b-2 border-industrial-gray">
                         <div className="flex items-center gap-4">
-                        <div className="w-3 h-3 bg-aura-violet rounded-full animate-pulse" style={{boxShadow: '0 0 10px var(--aura-violet)'}}></div>
-                        <h3 className="font-heading uppercase text-xl tracking-widest text-aura-light">
+                        <div className="w-3 h-3 bg-heavy-yellow animate-pulse" style={{boxShadow: '0 0 10px var(--heavy-yellow)'}}></div>
+                        <h3 className="font-heading uppercase text-xl tracking-widest text-text-light">
                             {getOverlayTitle(activeOverlay)}
                         </h3>
                         </div>
-                        <button onClick={() => setActiveOverlay(null)} className="p-2 rounded-full hover:bg-aura-mauve text-aura-gray hover:text-aura-light transition-colors">
+                        <button onClick={() => setActiveOverlay(null)} className="p-2 rounded-full hover:bg-industrial-gray text-text-muted hover:text-text-light transition-colors">
                           <XIcon className="h-6 w-6" />
                         </button>
                     </div>

@@ -111,20 +111,20 @@ export const connectLiveSession = (callbacks: { onopen: () => void, onmessage: (
           inputAudioTranscription: {},
           outputAudioTranscription: {},
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-          systemInstruction: "You are the AURA Core interface. Be helpful and clear.",
+          systemInstruction: "You are the IRON-CORE interface. Be helpful and clear, with an industrial and direct tone.",
         },
     });
 };
 
 export const generateChatResponse = async (prompt: string): Promise<string> => {
   const ai = getAI();
-  if (!ai) return "AURA INTERFACE OFFLINE.";
+  if (!ai) return "IRON-CORE INTERFACE OFFLINE.";
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: sanitizePrompt(prompt),
       config: {
-        systemInstruction: "You are the AURA Core interface. Be helpful and clear. Respond with concise, well-formatted markdown.",
+        systemInstruction: "You are the IRON-CORE interface. Be helpful and clear, with an industrial and direct tone. Respond with concise, well-formatted markdown.",
         thinkingConfig: { thinkingBudget: 16384 },
         tools: [{ googleSearch: {} }],
       }
@@ -139,7 +139,7 @@ export const generateChatResponse = async (prompt: string): Promise<string> => {
 export async function* generateChatStream(prompt: string) {
   const ai = getAI();
   if (!ai) {
-    yield { text: "AURA INTERFACE OFFLINE." };
+    yield { text: "IRON-CORE INTERFACE OFFLINE." };
     return;
   }
   try {
@@ -147,7 +147,7 @@ export async function* generateChatStream(prompt: string) {
       model: 'gemini-3-pro-preview',
       contents: sanitizePrompt(prompt),
       config: {
-        systemInstruction: "You are the AURA Core interface. Be helpful and clear. Respond with concise, well-formatted markdown.",
+        systemInstruction: "You are the IRON-CORE interface. Be helpful and clear, with an industrial and direct tone. Respond with concise, well-formatted markdown.",
         thinkingConfig: { thinkingBudget: 16384 },
         tools: [{ googleSearch: {} }],
       }
@@ -192,7 +192,7 @@ export const generateImage = async (prompt: string, negativePrompt: string, aspe
 
 export const editImage = async (prompt: string, sourceImageUrl: string): Promise<string> => {
   const ai = getAI();
-  if (!ai) throw new Error("AURA INTERFACE OFFLINE.");
+  if (!ai) throw new Error("IRON-CORE INTERFACE OFFLINE.");
   try {
     const imageData = await urlToBase64(sourceImageUrl);
     const response = await ai.models.generateContent({
@@ -216,7 +216,7 @@ export const editImage = async (prompt: string, sourceImageUrl: string): Promise
 
 export const generateSpeech = async (text: string, voice: string): Promise<string> => {
     const ai = getAI();
-    if (!ai) throw new Error("AURA INTERFACE OFFLINE.");
+    if (!ai) throw new Error("IRON-CORE INTERFACE OFFLINE.");
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -295,7 +295,7 @@ export const fetchVideoResult = async (downloadLink: string): Promise<string> =>
 
 export const generateTheme = async (prompt: string): Promise<any> => {
   const ai = getAI();
-  if (!ai) throw new Error("AURA INTERFACE OFFLINE.");
+  if (!ai) throw new Error("IRON-CORE INTERFACE OFFLINE.");
 
   try {
     const response = await ai.models.generateContent({

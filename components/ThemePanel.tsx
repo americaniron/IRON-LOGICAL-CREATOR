@@ -9,27 +9,27 @@ import { Palette } from './common/Icons';
 
 interface Theme {
   name: string;
-  indigo: string;
-  slate: string;
-  mauve: string;
-  violet: string;
-  cyan: string;
+  indigo: string; // Mapped to asphalt
+  slate: string;  // Mapped to steel
+  mauve: string;  // Mapped to industrial-gray
+  violet: string; // Mapped to heavy-yellow
+  cyan: string;   // Mapped to safety-orange
   light: string;
   gray: string;
 }
 
 const defaultTheme: Theme = {
-  name: 'AURA Hyper-Neon',
-  indigo: '#030305',
-  slate: '#0A0B10',
-  mauve: '#2A1F3D',
-  violet: '#F000FF',
-  cyan: '#00FFFF',
-  light: '#FFFFFF',
-  gray: '#94A3B8',
+  name: 'IRON Default',
+  indigo: '#111317',
+  slate: '#23272F',
+  mauve: '#4A515A',
+  violet: '#FFC20E',
+  cyan: '#F97316',
+  light: '#EAEAEA',
+  gray: '#88929E',
 };
 
-const THEME_STORAGE_KEY = 'AURA_CUSTOM_THEME';
+const THEME_STORAGE_KEY = 'IRON_CUSTOM_THEME';
 
 const ThemePanel: React.FC = () => {
   const { logOperation, notify } = useContext(SystemStatusContext);
@@ -40,13 +40,13 @@ const ThemePanel: React.FC = () => {
 
   const applyTheme = useCallback((theme: Theme) => {
     const root = document.documentElement;
-    root.style.setProperty('--aura-indigo', theme.indigo);
-    root.style.setProperty('--aura-slate', theme.slate);
-    root.style.setProperty('--aura-mauve', theme.mauve);
-    root.style.setProperty('--aura-violet', theme.violet);
-    root.style.setProperty('--aura-cyan', theme.cyan);
-    root.style.setProperty('--aura-light', theme.light);
-    root.style.setProperty('--aura-gray', theme.gray);
+    root.style.setProperty('--asphalt', theme.indigo);
+    root.style.setProperty('--steel', theme.slate);
+    root.style.setProperty('--industrial-gray', theme.mauve);
+    root.style.setProperty('--heavy-yellow', theme.violet);
+    root.style.setProperty('--safety-orange', theme.cyan);
+    root.style.setProperty('--text-light', theme.light);
+    root.style.setProperty('--text-muted', theme.gray);
     localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
   }, []);
 
@@ -92,15 +92,15 @@ const ThemePanel: React.FC = () => {
     applyTheme(defaultTheme);
     localStorage.removeItem(THEME_STORAGE_KEY);
     setGeneratedTheme(null);
-    notify("Theme reset to default AURA.", "info");
+    notify("Theme reset to default IRON.", "info");
   };
 
   const ColorSwatch = ({ name, color }: { name: string; color: string }) => (
-    <div className="flex items-center justify-between p-3 bg-aura-indigo border border-aura-mauve rounded-md">
-      <span className="text-sm font-body text-aura-gray capitalize">{name}</span>
+    <div className="flex items-center justify-between p-3 bg-asphalt border border-industrial-gray">
+      <span className="text-sm font-body text-text-muted capitalize">{name}</span>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-body text-aura-light">{color}</span>
-        <div className="w-6 h-6 rounded-sm border border-aura-light" style={{ backgroundColor: color }}></div>
+        <span className="text-sm font-body text-text-light">{color}</span>
+        <div className="w-6 h-6 border border-text-light" style={{ backgroundColor: color }}></div>
       </div>
     </div>
   );
@@ -112,15 +112,15 @@ const ThemePanel: React.FC = () => {
       <div className="control-panel p-8">
         <form onSubmit={handleGenerate} className="space-y-4">
           <div>
-            <label className="block text-xs font-heading uppercase tracking-widest text-aura-cyan mb-2">
-              Theme Directive
+            <label className="block text-[10px] font-mono font-black uppercase tracking-[0.2em] text-heavy-yellow mb-2">
+              &gt; Theme Directive
             </label>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe your desired theme, e.g., 'a warm solar punk theme with orange and cream' or 'a cold, brutalist interface with stark red highlights'."
               rows={4}
-              className="w-full px-4 py-3 bg-aura-indigo border border-aura-mauve rounded-sm text-aura-light focus:outline-none transition-colors text-sm focus-ring"
+              className="w-full px-4 py-3 bg-asphalt border-2 border-t-black border-l-black border-b-industrial-gray border-r-industrial-gray text-text-light focus:outline-none transition-colors text-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] focus-ring"
               disabled={isLoading}
             />
           </div>
@@ -141,18 +141,18 @@ const ThemePanel: React.FC = () => {
       {generatedTheme && (
         <div className="control-panel p-8 animate-in fade-in-0">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-            <h3 className="font-heading text-xl text-aura-light">Generated Theme: <span className="text-aura-violet">{generatedTheme.name}</span></h3>
+            <h3 className="font-heading text-xl text-text-light">Generated Theme: <span className="text-heavy-yellow">{generatedTheme.name}</span></h3>
             <div className="flex gap-4">
               <Button onClick={handleReset} variant="danger" size="sm">Reset to Default</Button>
               <Button onClick={handleApply} variant="primary" size="sm">Apply Theme</Button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ColorSwatch name="Background" color={generatedTheme.indigo} />
-            <ColorSwatch name="Panels" color={generatedTheme.slate} />
-            <ColorSwatch name="Borders" color={generatedTheme.mauve} />
-            <ColorSwatch name="Primary Accent" color={generatedTheme.violet} />
-            <ColorSwatch name="Secondary Accent" color={generatedTheme.cyan} />
+            <ColorSwatch name="Background (Asphalt)" color={generatedTheme.indigo} />
+            <ColorSwatch name="Panels (Steel)" color={generatedTheme.slate} />
+            <ColorSwatch name="Borders (Industrial)" color={generatedTheme.mauve} />
+            <ColorSwatch name="Primary (Yellow)" color={generatedTheme.violet} />
+            <ColorSwatch name="Secondary (Orange)" color={generatedTheme.cyan} />
             <ColorSwatch name="Primary Text" color={generatedTheme.light} />
             <ColorSwatch name="Secondary Text" color={generatedTheme.gray} />
           </div>

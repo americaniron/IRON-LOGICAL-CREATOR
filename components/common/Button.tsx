@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -26,53 +25,59 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary
   }, [isThrottled, throttleMs]);
   
   const baseStyles = `
-    font-heading uppercase tracking-widest
-    transition-all duration-200 
+    font-heading uppercase tracking-widest font-black
+    transition-all duration-100 
     flex items-center justify-center gap-3 
-    border rounded-sm
-    disabled:bg-aura-mauve/20 disabled:border-aura-mauve/20 disabled:text-aura-gray disabled:cursor-not-allowed
+    border-2 border-black
+    disabled:bg-industrial-gray/50 disabled:border-t-industrial-gray disabled:border-l-industrial-gray disabled:text-text-muted disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0
     focus-ring
   `;
 
   const variants = {
     primary: `
-      bg-aura-violet border-aura-violet text-white
-      hover:bg-transparent hover:text-aura-violet hover:shadow-[0_0_15px_var(--aura-violet)]
-      active:scale-95
+      bg-heavy-yellow border-t-yellow-300 border-l-yellow-300 text-black
+      shadow-[0_6px_0_#b38600] active:shadow-[0_2px_0_#b38600]
+      hover:bg-yellow-400
+      active:translate-y-[4px]
     `,
     secondary: `
-      bg-transparent border-aura-mauve text-aura-gray
-      hover:border-aura-light hover:text-aura-light
-      active:scale-95
+      bg-industrial-gray border-t-gray-400 border-l-gray-400 text-text-light
+      shadow-[0_6px_0_#2a2e33] active:shadow-[0_2px_0_#2a2e33]
+      hover:bg-gray-600
+      active:translate-y-[4px]
     `,
     danger: `
-      bg-transparent border-red-500 text-red-400
-      hover:bg-red-500 hover:text-white hover:shadow-[0_0_15px_#ef4444]
-      active:scale-95
+      bg-red-600 border-t-red-400 border-l-red-400 text-white
+      shadow-[0_6px_0_#991b1b] active:shadow-[0_2px_0_#991b1b]
+      hover:bg-red-500
+      active:translate-y-[4px]
     `,
-    // FIX: Add 'warning' variant for ErrorBoundary button
     warning: `
-      bg-yellow-500 border-yellow-500 text-black
-      hover:bg-transparent hover:text-yellow-500 hover:shadow-[0_0_15px_#f59e0b]
-      active:scale-95
+      bg-orange-500 border-t-orange-300 border-l-orange-300 text-black
+      shadow-[0_6px_0_#c2410c] active:shadow-[0_2px_0_#c2410c]
+      hover:bg-orange-400
+      active:translate-y-[4px]
     `,
   };
 
   const providerStyles = {
     guest: `
-      bg-guest-green border-guest-green text-black
-      hover:bg-transparent hover:text-guest-green
-      active:scale-95
+      bg-guest-green border-t-green-300 border-l-green-300 text-black
+      shadow-[0_6px_0_#15803d] active:shadow-[0_2px_0_#15803d]
+      hover:bg-green-400
+      active:translate-y-[4px]
     `,
     xcorp: `
-      bg-grok-magenta border-grok-magenta text-white
-      hover:bg-transparent hover:text-grok-magenta
-      active:scale-95
+      bg-grok-magenta border-t-fuchsia-300 border-l-fuchsia-300 text-white
+      shadow-[0_6px_0_#86198f] active:shadow-[0_2px_0_#86198f]
+      hover:bg-fuchsia-500
+      active:translate-y-[4px]
     `,
     meta: `
-      bg-purple-600 border-purple-600 text-white
-      hover:bg-transparent hover:text-purple-500 hover:border-purple-500
-      active:scale-95
+      bg-purple-600 border-t-purple-400 border-l-purple-400 text-white
+      shadow-[0_6px_0_#6b21a8] active:shadow-[0_2px_0_#6b21a8]
+      hover:bg-purple-500
+      active:translate-y-[4px]
     `,
   };
   

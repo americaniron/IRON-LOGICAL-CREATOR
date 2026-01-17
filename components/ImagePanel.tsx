@@ -120,7 +120,6 @@ const ImagePanel: React.FC = () => {
             placeholder="A futuristic cityscape at dusk..."
             required
             autoComplete="off"
-            className="focus-ring"
           />
           <Input
             label="Negative Prompt"
@@ -129,7 +128,6 @@ const ImagePanel: React.FC = () => {
             onChange={(e) => setNegativePrompt(e.target.value)}
             placeholder="blurry, low quality..."
             autoComplete="off"
-            className="focus-ring"
           />
           <div className="grid grid-cols-2 gap-4 md:gap-6">
             <Select
@@ -149,18 +147,18 @@ const ImagePanel: React.FC = () => {
           </div>
 
           {isProModel && (
-            <div className="bg-aura-indigo/50 border border-aura-mauve rounded-md">
+            <div className="bg-asphalt/50 border-2 border-industrial-gray">
               <button
                 type="button"
                 onClick={() => setShowProMods(!showProMods)}
-                className="w-full p-3 md:p-4 flex justify-between items-center hover:bg-aura-mauve/20"
+                className="w-full p-3 md:p-4 flex justify-between items-center hover:bg-industrial-gray/20"
                 disabled={!isKeySelected}
               >
                 <div className="flex items-center gap-3">
                   <Gear className={`h-5 w-5 transition-transform ${showProMods ? 'rotate-90' : ''}`} />
-                  <span className="font-heading uppercase tracking-widest text-sm md:text-base text-aura-light">Advanced Options</span>
+                  <span className="font-heading uppercase tracking-widest text-sm md:text-base text-text-light">Advanced Options</span>
                 </div>
-                <span className="text-aura-cyan font-body text-xs">{showProMods ? 'Collapse' : 'Expand'}</span>
+                <span className="text-heavy-yellow font-body text-xs">{showProMods ? 'Collapse' : 'Expand'}</span>
               </button>
               {showProMods && (
                 <div className="p-4 md:p-6 space-y-4 md:space-y-6 animate-in fade-in-0 duration-300">
@@ -179,15 +177,15 @@ const ImagePanel: React.FC = () => {
                     onChange={(e) => setSeed(e.target.value)}
                     placeholder="Random"
                   />
-                  <div className="flex items-center space-x-3 bg-aura-slate p-3 border border-aura-mauve rounded-md">
+                  <div className="flex items-center space-x-3 bg-asphalt p-3 border-2 border-industrial-gray">
                       <input
                           type="checkbox"
                           id="google_search"
                           checked={useGoogleSearch}
                           onChange={(e) => setUseGoogleSearch(e.target.checked)}
-                          className="h-5 w-5 rounded-sm border-2 border-aura-cyan bg-aura-slate text-aura-cyan focus:ring-0 cursor-pointer"
+                          className="h-5 w-5 border-2 border-heavy-yellow bg-steel text-heavy-yellow focus:ring-0 cursor-pointer"
                       />
-                      <label htmlFor="google_search" className="font-body text-sm text-aura-cyan uppercase tracking-wider cursor-pointer">
+                      <label htmlFor="google_search" className="font-body text-sm text-heavy-yellow uppercase tracking-wider cursor-pointer">
                           Enable Search Grounding
                       </label>
                   </div>
@@ -200,34 +198,34 @@ const ImagePanel: React.FC = () => {
           </Button>
         </form>
       </div>
-       <div className="monitor-screen flex flex-col items-center justify-center h-full relative overflow-hidden p-4 md:p-6 min-h-[300px] order-1 xl:order-2 xl:w-1/2">
-         <div className="absolute top-4 left-6 text-xs font-body text-aura-violet tracking-widest uppercase font-bold animate-pulse z-20">
+       <div className="monitor-screen flex flex-col items-center justify-center h-full relative overflow-hidden p-4 md:p-6 min-h-[300px] order-1 xl:order-2 xl:w-1/2 blueprint-grid">
+         <div className="absolute top-4 left-6 text-xs font-body text-heavy-yellow tracking-widest uppercase font-bold animate-pulse z-20">
             // Synthesis Monitor
         </div>
         
         {isLoading && <Spinner text="Processing..." />}
-        {error && <p className="text-red-400 font-body text-center border border-red-500/50 p-4 md:p-8 bg-red-500/10 rounded-md uppercase text-xs md:text-sm">{error}</p>}
+        {error && <p className="text-red-400 font-body text-center border border-red-500/50 p-4 md:p-8 bg-red-500/10 uppercase text-xs md:text-sm">{error}</p>}
         {result && !isLoading && (
-          <div className="text-center w-full flex flex-col justify-center items-center space-y-4 md:space-y-6 animate-in fade-in-0 zoom-in duration-500">
-            <div className="p-2 bg-aura-indigo border border-aura-mauve shadow-2xl relative rounded-lg">
-               <img src={result.url} alt={result.prompt} className="max-w-full max-h-[40vh] md:max-h-[50vh] xl:max-h-full mx-auto object-contain rounded-md" />
+          <div className="text-center w-full flex flex-col justify-center items-center space-y-4 md:space-y-6 animate-in fade-in-0 zoom-in-95 duration-500">
+            <div className="p-2 bg-asphalt border-2 border-black shadow-2xl relative">
+               <img src={result.url} alt={result.prompt} className="max-w-full max-h-[40vh] md:max-h-[50vh] xl:max-h-full mx-auto object-contain" />
             </div>
-            <div className="bg-aura-slate/80 p-3 border border-aura-mauve shadow-xl w-full max-w-lg rounded-md">
+            <div className="bg-steel/80 p-3 border-2 border-industrial-gray shadow-xl w-full max-w-lg">
                 <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => pipeToTask(result, Task.ImageEdit)} className="flex items-center justify-center gap-2 py-3 bg-aura-mauve/50 border border-aura-mauve/80 hover:bg-aura-mauve text-aura-light hover:text-white transition-all text-xs font-body uppercase font-bold tracking-widest rounded-md">
+                    <Button onClick={() => pipeToTask(result, Task.ImageEdit)} variant="secondary" size="sm" className="!gap-1">
                         <Gear className="h-4 w-4" /> Pipe to Editor
-                    </button>
-                    <button onClick={() => pipeToTask(result, Task.ImageToVideo)} className="flex items-center justify-center gap-2 py-3 bg-aura-mauve/50 border border-aura-mauve/80 hover:bg-aura-mauve text-aura-light hover:text-white transition-all text-xs font-body uppercase font-bold tracking-widest rounded-md">
+                    </Button>
+                     <Button onClick={() => pipeToTask(result, Task.ImageToVideo)} variant="secondary" size="sm" className="!gap-1">
                         <Film className="h-4 w-4" /> Pipe to Video
-                    </button>
+                    </Button>
                 </div>
             </div>
           </div>
         )}
         {!isLoading && !error && !result && (
-          <div className="text-center text-aura-mauve font-body uppercase tracking-widest scale-75 md:scale-100">
+          <div className="text-center text-industrial-gray font-body uppercase tracking-widest scale-75 md:scale-100">
             <div className="mb-4 md:mb-8 text-4xl">
-              <Image className="mx-auto h-16 w-16 md:h-24 md:w-24" />
+              <Image className="mx-auto h-16 w-16 md:h-24 md:w-24 opacity-20" />
             </div>
             <p className="text-lg font-heading opacity-60 tracking-widest">Display Idle</p>
           </div>

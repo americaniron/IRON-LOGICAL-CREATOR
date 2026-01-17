@@ -31,7 +31,7 @@ export const useVeo = () => {
     setIsLoading(true);
     setError(null);
     setResultUrl(null);
-    setProgressMessage("INITIALIZING BASE RIG ASSEMBLY...");
+    setProgressMessage(VIDEO_GENERATION_MESSAGES[0]);
 
     try {
       const requiresExtension = params.duration > 8;

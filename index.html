@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.x.ai https://image.pollinations.ai https://storage.googleapis.com https://picsum.photos; shadow-root 'self';">
-    <title>AURA Interface</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.x.ai; shadow-root 'self';">
+    <title>IRON MEDIA - Site Orchestrator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <script type="importmap">
 {
   "imports": {
@@ -27,39 +27,36 @@
 </script>
 <style>
   :root {
-    --aura-indigo: #030305;
-    --aura-slate: #0A0B10;
-    --aura-mauve: #2A1F3D;
-    --aura-violet: #F000FF;
-    --aura-cyan: #00FFFF;
-    --aura-light: #FFFFFF;
-    --aura-gray: #94A3B8;
-    --font-heading: 'Orbitron', sans-serif;
+    --heavy-yellow: #FFC20E;
+    --safety-orange: #F97316;
+    --asphalt: #111317;
+    --steel: #23272F;
+    --industrial-gray: #4A515A;
+    --text-light: #EAEAEA;
+    --text-muted: #88929E;
+    
+    --guest-green: #22c55e;
+    --grok-magenta: #d946ef;
+
+    --font-heading: 'Black Ops One', sans-serif;
     --font-body: 'Share Tech Mono', monospace;
   }
   
   body {
-    font-family: 'Share Tech Mono', monospace;
-    background-color: #030305;
-    color: #94A3B8;
+    font-family: var(--font-body);
+    background-color: var(--asphalt);
+    color: var(--text-muted);
     overflow: hidden;
     position: relative;
     margin: 0;
   }
 
-  body::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: radial-gradient(circle at 50% 50%, #1a0b2e 0%, #030305 70%);
-    opacity: 0.6;
-    z-index: -1;
-  }
-
-  .hex-grid {
-     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg id='hexagons' fill='%23F000FF' fill-opacity='0.03' fill-rule='nonzero'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.99-7.5L26 15v18.5l-12.99 7.5L0 33.5z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-     background-repeat: repeat;
-     position: relative;
+  .blueprint-grid {
+    background-color: var(--asphalt);
+    background-image: 
+        linear-gradient(rgba(74, 81, 90, 0.2) 1px, transparent 1px), 
+        linear-gradient(90deg, rgba(74, 81, 90, 0.2) 1px, transparent 1px);
+    background-size: 25px 25px;
   }
   
   #root {
@@ -69,29 +66,37 @@
   }
 
   .control-panel {
-    background-color: rgba(10, 11, 16, 0.85);
-    border: 1px solid rgba(240, 0, 255, 0.2);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(240, 0, 255, 0.05);
-    border-radius: 4px;
+    background-color: rgba(35, 39, 47, 0.9);
+    border: 2px solid #000;
+    border-top-color: var(--industrial-gray);
+    border-left-color: var(--industrial-gray);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 2px 5px rgba(0,0,0,0.3);
   }
 
   .monitor-screen {
-    background-color: rgba(5, 5, 8, 0.9);
-    border: 1px solid rgba(0, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.05), inset 0 0 30px rgba(0,0,0,0.9);
-    border-radius: 4px;
+    background-color: rgba(17, 19, 23, 0.95);
+    border: 1px solid var(--industrial-gray);
+    backdrop-filter: blur(4px);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
     position: relative;
   }
   
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: var(--aura-violet) var(--aura-indigo);
+    scrollbar-color: var(--heavy-yellow) var(--asphalt);
   }
+
+  .scrollbar-thumb-guest-green::-webkit-scrollbar-thumb { background-color: var(--guest-green); }
+  .scrollbar-thumb-grok-magenta::-webkit-scrollbar-thumb { background-color: var(--grok-magenta); }
   
   .animate-in { 
     animation: slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  }
+
+  .focus-ring:focus, .focus-ring:focus-within {
+    outline: 2px solid var(--heavy-yellow);
+    outline-offset: 2px;
   }
   
   @keyframes slide-up-fade {
@@ -99,16 +104,37 @@
     100% { opacity: 1; transform: translateY(0); }
   }
 
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+
   #boot-screen {
     transition: opacity 0.5s ease;
   }
+
+  .caution-stripes {
+    background-image: repeating-linear-gradient(
+      45deg,
+      var(--heavy-yellow),
+      var(--heavy-yellow) 10px,
+      #000 10px,
+      #000 20px
+    );
+  }
+
+  .rivet {
+      width: 8px; height: 8px; background: #000; border: 1px solid var(--industrial-gray); border-radius: 50%;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.2);
+  }
 </style>
 </head>
-  <body class="text-gray-300" style="background-color: #030305;">
+  <body class="text-gray-300">
     <div id="root">
-        <div id="boot-screen" style="position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #030305; font-family: 'Courier New', monospace; color: #F000FF; text-transform: uppercase; letter-spacing: 0.5em; gap: 20px;">
-            <div style="font-size: 2rem; font-weight: 900; text-shadow: 0 0 20px #F000FF;">AURA</div>
-            <div id="boot-status" style="font-size: 0.8rem; color: #00FFFF; letter-spacing: 0.2em;">SYSTEM_BOOT_SEQUENCE...</div>
+        <div id="boot-screen" style="position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111317; font-family: 'Black Ops One', sans-serif; color: #FFC20E; text-transform: uppercase; letter-spacing: 0.5em; gap: 20px;">
+            <div style="font-size: 2.5rem; font-weight: 900; text-shadow: 0 0 20px #FFC20E;">IRON MEDIA</div>
+            <div id="boot-status" style="font-size: 0.8rem; color: #88929E; letter-spacing: 0.2em;">SYSTEM_BOOT_SEQUENCE...</div>
             <div id="error-log" style="font-size: 0.7rem; color: #ef4444; margin-top: 20px; white-space: pre-wrap; max-width: 80%; text-align: center; letter-spacing: normal;"></div>
         </div>
     </div>

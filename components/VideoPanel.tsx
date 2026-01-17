@@ -18,7 +18,7 @@ interface VideoPanelProps {
 }
 
 const aspectRatios = ["16:9", "9:16"];
-const resolutions = ["720p", "1024p"];
+const resolutions = ["720p", "1080p"];
 const models = ["veo-3.1-fast-generate-preview", "veo-3.1-generate-preview"];
 const upscaleStrengths = [{value: '2x', label: '2X Resolution'}, {value: '4x', label: '4X Fidelity'}];
 
@@ -131,7 +131,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isChecking && !isKeySelected && (
-            <ApiKeyPrompt modelName="AURA Video Synthesis" onSelectKey={selectKey} />
+            <ApiKeyPrompt modelName="IRON Video Synthesis" onSelectKey={selectKey} />
           )}
           
           {task === Task.ImageToVideo && (
@@ -143,15 +143,15 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
           )}
           
           <div className="relative group">
-            <label className="block text-xs font-heading uppercase tracking-widest text-aura-cyan mb-2">
-              Prompt
+            <label className="block text-[10px] font-mono font-black uppercase tracking-[0.2em] text-heavy-yellow mb-2">
+              &gt; Prompt
             </label>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe the desired video output..."
               rows={8}
-              className="w-full px-4 py-3 bg-aura-indigo border border-aura-mauve rounded-sm text-aura-light focus:outline-none transition-colors text-sm focus-ring"
+              className="w-full px-4 py-3 bg-asphalt border-2 border-t-black border-l-black border-b-industrial-gray border-r-industrial-gray text-text-light focus:outline-none transition-colors text-sm tracking-wider uppercase shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] focus-ring"
               required={task === Task.TextToVideo}
             />
           </div>
@@ -187,8 +187,8 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         </form>
       </div>
 
-      <div className="monitor-screen flex flex-col items-center justify-center h-full relative overflow-hidden p-6 min-h-[400px] order-1 xl:order-2 xl:w-1/2">
-        <div className="absolute top-4 left-6 text-xs font-body text-aura-violet tracking-widest uppercase font-bold animate-pulse z-20">
+      <div className="monitor-screen flex flex-col items-center justify-center h-full relative overflow-hidden p-6 min-h-[400px] order-1 xl:order-2 xl:w-1/2 blueprint-grid">
+        <div className="absolute top-4 left-6 text-xs font-body text-heavy-yellow tracking-widest uppercase font-bold animate-pulse z-20">
             // Synthesis Monitor
         </div>
         
@@ -196,7 +196,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         {isUpscaling && <Spinner text="Upscaling..." />}
         
         {error && (
-            <div className="text-center space-y-4 animate-in p-10 bg-red-900/10 border border-red-500/50 rounded-lg">
+            <div className="text-center space-y-4 animate-in p-10 bg-red-900/10 border-2 border-red-500/50">
                 <p className="text-red-400 font-heading uppercase tracking-widest text-2xl">Generation Failed</p>
                 <p className="font-body text-xs text-red-300">{error}</p>
                 <Button onClick={() => window.location.reload()} variant="danger" size="sm">Reset</Button>
@@ -204,20 +204,20 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         )}
         
         {currentVideoUrl && !isLoading && !isUpscaling && (
-          <div className="text-center w-full h-full flex flex-col items-stretch justify-center p-2 animate-in fade-in-0 zoom-in duration-1000">
-            <div className="relative group w-full bg-black border border-aura-mauve rounded-lg shadow-2xl overflow-hidden">
+          <div className="text-center w-full h-full flex flex-col items-stretch justify-center p-2 animate-in fade-in-0 zoom-in-95 duration-500">
+            <div className="relative group w-full bg-black border-2 border-black shadow-2xl overflow-hidden">
               <video key={currentVideoUrl} src={currentVideoUrl} controls autoPlay loop className="w-full h-auto max-h-[45vh]" />
             </div>
             
-            <div className="mt-4 bg-aura-slate/80 p-5 border border-aura-mauve w-full text-left shadow-2xl rounded-lg space-y-4">
-               <div className="flex justify-between items-center border-b border-aura-mauve/50 pb-4">
-                    <p className="text-base text-aura-light font-heading uppercase tracking-wider">Asset Ready</p>
-                    <a href={currentVideoUrl} download className="flex items-center gap-2 bg-aura-cyan text-black px-4 py-2 text-sm font-heading uppercase hover:bg-white rounded-md">
+            <div className="mt-4 bg-steel/80 p-5 border-2 border-industrial-gray w-full text-left shadow-2xl space-y-4">
+               <div className="flex justify-between items-center border-b border-industrial-gray/50 pb-4">
+                    <p className="text-base text-text-light font-heading uppercase tracking-wider">Asset Ready</p>
+                    <a href={currentVideoUrl} download className="flex items-center gap-2 bg-heavy-yellow text-black px-4 py-2 text-sm font-heading uppercase hover:bg-yellow-300">
                         <Download className="h-5 w-5" /> Download
                     </a>
                </div>
-               <div className="bg-aura-indigo/50 border border-aura-mauve p-5 rounded-md">
-                  <h4 className="flex items-center gap-2 text-sm font-heading uppercase tracking-widest text-aura-cyan mb-5">
+               <div className="bg-asphalt/50 border border-industrial-gray p-5">
+                  <h4 className="flex items-center gap-2 text-sm font-heading uppercase tracking-widest text-heavy-yellow mb-5">
                     <Maximize className="h-5 w-5"/> Upscale (Prototype)
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
@@ -231,9 +231,9 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         )}
         
         {!isLoading && !isUpscaling && !error && !resultUrl && (
-          <div className="text-center text-aura-mauve font-body uppercase tracking-widest">
+          <div className="text-center text-industrial-gray/50 font-body uppercase tracking-widest">
             <Video className="mx-auto h-32 w-32 opacity-20 mb-8" />
-            <p className="text-xl font-heading text-aura-gray tracking-widest">Display Idle</p>
+            <p className="text-xl font-heading text-text-muted tracking-widest">Display Idle</p>
           </div>
         )}
       </div>

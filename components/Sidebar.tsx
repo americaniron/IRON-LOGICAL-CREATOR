@@ -77,22 +77,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       <li>
         <button
           onClick={() => !isLocked && handleNavClick(item)}
-          className={`w-full flex items-center p-3 rounded-md transition-all duration-200 relative overflow-hidden group text-lg ${
-            isLocked ? 'opacity-30 cursor-not-allowed' :
-            isActive ? `bg-aura-violet text-white shadow-[0_0_15px_var(--aura-violet)]` :
-            'text-aura-gray hover:text-aura-light hover:bg-aura-mauve/40'
+          className={`w-full flex items-center p-3 transition-all duration-200 relative overflow-hidden group text-lg border-l-4 ${
+            isLocked ? 'opacity-30 cursor-not-allowed border-transparent' :
+            isActive ? `bg-heavy-yellow/10 text-heavy-yellow border-heavy-yellow` :
+            'text-text-muted hover:text-text-light hover:bg-industrial-gray/40 border-transparent'
           }`}
           disabled={isLocked}
         >
-          <div className={`absolute top-0 left-0 bottom-0 w-1 bg-aura-cyan transition-transform duration-300 ${isActive ? 'scale-y-100' : 'scale-y-0'}`}></div>
           <div className="ml-3 mr-4">
             {isLocked ? <Lock className="h-5 w-5" /> : item.icon}
           </div>
-          <span className="font-body text-sm flex-1 text-left">
+          <span className="font-body text-sm flex-1 text-left uppercase tracking-wider">
             {item.label}
             {item.simulated && <span className="text-yellow-500 text-[10px] ml-2">(SIM)</span>}
           </span>
-          {isLocked && <span className="text-[9px] border border-aura-mauve px-1.5 py-0.5 rounded-sm">LOCKED</span>}
+          {isLocked && <span className="text-[9px] border border-industrial-gray px-1.5 py-0.5">LOCKED</span>}
         </button>
       </li>
     );
@@ -105,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 
   const NavHeader: React.FC<{ title: string }> = ({ title }) => (
-      <h2 className="px-3 pt-6 pb-2 text-[10px] font-body text-aura-mauve uppercase tracking-[0.2em]">{title}</h2>
+      <h2 className="px-3 pt-6 pb-2 text-[10px] font-body text-industrial-gray uppercase tracking-[0.2em] font-bold">{title}</h2>
   );
 
   return (
@@ -117,18 +116,19 @@ const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      <nav className={`fixed inset-y-0 left-0 z-50 w-72 bg-aura-slate/80 backdrop-blur-xl border-r border-aura-mauve/50 flex flex-col shadow-2xl transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <nav className={`fixed inset-y-0 left-0 z-50 w-72 bg-steel/80 backdrop-blur-xl border-r-2 border-black flex flex-col shadow-2xl transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
-        <div className="p-6 flex flex-col items-center border-b border-aura-mauve/50">
+        <div className="p-6 flex flex-col items-center border-b-2 border-black relative">
+          <div className="caution-stripes h-1.5 absolute bottom-0 left-0 right-0 opacity-50"></div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="absolute top-4 right-4 md:hidden text-aura-gray hover:text-aura-light"
+            className="absolute top-4 right-4 md:hidden text-text-muted hover:text-text-light"
           >
             <XIcon className="h-6 w-6" />
           </button>
           <div className="text-center font-heading py-4">
-            <h1 className="text-5xl font-black text-aura-light tracking-tighter">AURA</h1>
-            <p className="text-[10px] font-body text-aura-violet tracking-widest mt-2 uppercase">Core Interface</p>
+            <h1 className="text-4xl font-black text-text-light tracking-widest">IRON</h1>
+            <p className="text-[10px] font-body text-heavy-yellow tracking-[0.4em] mt-1 uppercase">Orchestrator</p>
           </div>
         </div>
 
@@ -136,7 +136,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <NavHeader title="Mainframe" />
           <NavList items={mainNavItems} />
           
-          <NavHeader title="Advanced" />
+          <NavHeader title="Advanced Rigs" />
           <NavList items={advancedNavItems} />
 
           <NavHeader title="Guest Systems" />
@@ -146,10 +146,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           <NavList items={overlayItems} />
         </div>
 
-        <div className="p-4 border-t border-aura-mauve/50">
-          <div className="flex items-center gap-3 bg-aura-indigo p-3 rounded-md">
+        <div className="p-4 border-t-2 border-black">
+          <div className="flex items-center gap-3 bg-asphalt p-3 border border-industrial-gray">
             <div className={`h-2.5 w-2.5 rounded-full animate-pulse ${clearance > 0 ? 'bg-green-400' : 'bg-red-500'}`} style={{boxShadow: `0 0 8px ${clearance > 0 ? '#4ade80' : '#ef4444'}`}}></div>
-            <p className="text-xs font-body text-aura-gray uppercase tracking-widest">
+            <p className="text-xs font-body text-text-muted uppercase tracking-widest">
               Lvl {clearance}: <span className={clearance > 0 ? 'text-green-400' : 'text-red-400'}>{ClearanceLevel[clearance]}</span>
             </p>
           </div>

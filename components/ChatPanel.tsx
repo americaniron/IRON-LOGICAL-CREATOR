@@ -17,7 +17,7 @@ const ChatPanel: React.FC = () => {
   const { logOperation, notify } = useContext(SystemStatusContext);
 
   const [messages, setMessages] = useState<MessageWithSources[]>([
-    { id: '1', text: "AURA Core Interface online. Awaiting your directive.", sender: 'bot' }
+    { id: '1', text: "IRON-CORE INTERFACE ONLINE. AWAITING DIRECTIVE.", sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -100,23 +100,22 @@ const ChatPanel: React.FC = () => {
         {messages.map((msg) => (
           <div key={msg.id} className={`flex items-start gap-2 md:gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
             {msg.sender === 'bot' && (
-              <div className="p-2 md:p-2.5 bg-aura-violet rounded-full shadow-lg shrink-0">
-                <Bot className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              <div className="p-2 md:p-2.5 bg-heavy-yellow border-2 border-black rounded-sm shadow-lg shrink-0">
+                <Bot className="h-4 w-4 md:h-5 md:w-5 text-black" />
               </div>
             )}
             <div className={`relative max-w-[85%] sm:max-w-xl group ${
               msg.sender === 'user' 
-                ? 'bg-aura-mauve/50 rounded-lg rounded-br-none' 
-                : 'bg-aura-slate rounded-lg rounded-bl-none'
-            }`}>
-              <div className="px-4 py-3">
+                ? 'bg-industrial-gray' 
+                : 'bg-asphalt'
+            } border-2 border-black p-4`}>
               {msg.isTyping ? <Spinner text="THINKING..." /> : (
                 <>
-                  <div className="prose prose-sm prose-invert text-aura-light whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: msg.text + (msg.isStreaming ? '▍' : '') }}></div>
+                  <div className="prose prose-sm prose-invert text-text-light whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: msg.text + (msg.isStreaming ? '▍' : '') }}></div>
                   
                   {msg.sources && msg.sources.length > 0 && !msg.isStreaming && (
-                    <div className="mt-4 pt-3 border-t border-aura-mauve/50 space-y-2">
-                      <p className="text-[10px] text-aura-gray font-body uppercase tracking-widest">Sources:</p>
+                    <div className="mt-4 pt-3 border-t border-industrial-gray/50 space-y-2">
+                      <p className="text-[10px] text-text-muted font-body uppercase tracking-widest">Sources:</p>
                       <div className="flex flex-wrap gap-2">
                         {msg.sources.map((source, idx) => (
                           source.web && (
@@ -125,9 +124,9 @@ const ChatPanel: React.FC = () => {
                               href={source.web.uri} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="bg-aura-indigo border border-aura-mauve/50 px-2 py-1 rounded-md text-[10px] font-body hover:border-aura-cyan hover:text-aura-cyan transition-all flex items-center gap-2 group/cite"
+                              className="bg-asphalt border border-industrial-gray/50 px-2 py-1 text-[10px] font-body hover:border-heavy-yellow hover:text-heavy-yellow transition-all flex items-center gap-2 group/cite"
                             >
-                              <span className="text-aura-cyan group-hover/cite:text-aura-light">[{idx + 1}]</span>
+                              <span className="text-heavy-yellow group-hover/cite:text-text-light">[{idx + 1}]</span>
                               <span className="truncate max-w-[150px]">{source.web.title || 'Web Result'}</span>
                             </a>
                           )
@@ -140,19 +139,19 @@ const ChatPanel: React.FC = () => {
                     <div className="mt-4 flex flex-wrap gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => copyIntel(msg.text)}
-                        className="flex items-center gap-1.5 text-[10px] font-body bg-aura-mauve/50 hover:bg-aura-mauve text-aura-light px-2 py-1 rounded-md transition-all uppercase"
+                        className="flex items-center gap-1.5 text-[10px] font-body bg-industrial-gray/50 hover:bg-industrial-gray text-text-light px-2 py-1 transition-all uppercase"
                       >
                         Copy
                       </button>
                       <button 
                         onClick={() => pipeToGenerator(msg.text, Task.TextToImage)}
-                        className="flex items-center gap-1.5 text-[10px] font-body bg-aura-mauve/50 hover:bg-aura-mauve text-aura-light px-2 py-1 rounded-md transition-all uppercase"
+                        className="flex items-center gap-1.5 text-[10px] font-body bg-industrial-gray/50 hover:bg-industrial-gray text-text-light px-2 py-1 transition-all uppercase"
                       >
                         <Image className="h-3 w-3" /> Pipe to Image
                       </button>
                       <button 
                         onClick={() => pipeToGenerator(msg.text, Task.TextToVideo)}
-                        className="flex items-center gap-1.5 text-[10px] font-body bg-aura-mauve/50 hover:bg-aura-mauve text-aura-light px-2 py-1 rounded-md transition-all uppercase"
+                        className="flex items-center gap-1.5 text-[10px] font-body bg-industrial-gray/50 hover:bg-industrial-gray text-text-light px-2 py-1 transition-all uppercase"
                       >
                         <Video className="h-3 w-3" /> Pipe to Video
                       </button>
@@ -160,18 +159,17 @@ const ChatPanel: React.FC = () => {
                   )}
                 </>
               )}
-              </div>
             </div>
             {msg.sender === 'user' && (
-              <div className="p-2 md:p-2.5 bg-aura-light rounded-full shadow-lg shrink-0">
-                <User className="h-4 w-4 md:h-5 md:w-5 text-aura-slate" />
+              <div className="p-2 md:p-2.5 bg-text-light border-2 border-black rounded-sm shadow-lg shrink-0">
+                <User className="h-4 w-4 md:h-5 md:w-5 text-asphalt" />
               </div>
             )}
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="mt-4 pt-4 border-t border-aura-mauve/50">
+      <div className="mt-4 pt-4 border-t-2 border-industrial-gray/50">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="flex items-start gap-2"
