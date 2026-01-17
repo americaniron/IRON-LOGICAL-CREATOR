@@ -1,40 +1,68 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// Import all providers
+import { AuthProvider } from './contexts/AuthProvider';
+import { ConfigProvider } from './contexts/ConfigProvider';
+import { SystemStatusProvider } from './contexts/SystemStatusProvider';
+import { AssetProvider } from './contexts/AssetProvider';
+
+console.log("BOOT: Module index.tsx entered execution.");
 
 const bootstrap = () => {
   const rootElement = document.getElementById('root');
   if (!rootElement) {
-    console.error("CRITICAL_BOOT_FAULT: Root container element missing.");
+    console.error("BOOT_CRITICAL: root element not found.");
     return;
   }
 
+  console.log("BOOT: React root container identified.");
+  const root = createRoot(rootElement);
+
+  // Failsafe: Remove boot screen after 2.5 seconds regardless of React rendering status
+  const removeBootScreen = () => {
+    const bootScreen = document.getElementById('boot-screen');
+    if (bootScreen) {
+      console.log("BOOT: Hiding boot overlay.");
+      bootScreen.style.opacity = '0';
+      setTimeout(() => { 
+        if (bootScreen && bootScreen.parentNode) {
+          bootScreen.style.display = 'none'; 
+        }
+      }, 500);
+    }
+  };
+
+  setTimeout(removeBootScreen, 2500);
+
+  console.log("BOOT: Rendering React tree.");
   try {
-    const root = ReactDOM.createRoot(rootElement);
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
-          <App />
+          <ConfigProvider>
+            <SystemStatusProvider>
+              <AuthProvider>
+                <AssetProvider>
+                  <App />
+                </AssetProvider>
+              </AuthProvider>
+            </SystemStatusProvider>
+          </ConfigProvider>
         </ErrorBoundary>
       </React.StrictMode>
     );
-    console.log("SYSTEM_REPORT: BOOT_SEQUENCE_COMPLETE. INTERFACE_NOMINAL.");
+    console.log("BOOT: React tree mounting initiated.");
   } catch (err) {
-    console.error("SYSTEM_REPORT: CORE_FABRICATION_CRASH.", err);
-    rootElement.innerHTML = `
-      <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0d0e11; font-family: 'Roboto Mono', monospace; color: #ef4444; padding: 2rem; text-align: center;">
-        <h1 style="font-size: 2rem; margin-bottom: 1rem;">!! CRITICAL_CORE_FAULT !!</h1>
-        <p style="margin-bottom: 2rem;">MODULE_FABRICATION_FAILURE: CHECK_TELEMETRY_LOGS</p>
-        <button onclick="window.location.reload()" style="background: #ef4444; color: white; border: none; padding: 1rem 2rem; font-family: inherit; cursor: pointer; text-transform: uppercase; font-weight: bold;">Re-Initialize_System</button>
-      </div>
-    `;
+    console.error("BOOT_FATAL: Application failed to render.", err);
   }
 };
 
-// Execute boot
+// Initiate bootstrap sequence
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootstrap);
+    document.addEventListener('DOMContentLoaded', bootstrap);
 } else {
-  bootstrap();
+    bootstrap();
 }

@@ -1,8 +1,13 @@
-import { GoogleGenAI, GenerateContentResponse, Modality, LiveServerMessage, Type } from "@google/genai";
+import { GoogleGenAI, Modality, Type } from "@google/genai";
+import type { GenerateContentResponse, LiveServerMessage } from "@google/genai";
 
 const getAI = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return null;
+  // SAFTEY CHECK: Ensure process.env is accessible to prevent browser crashes
+  const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
+  if (!apiKey) {
+      console.warn("GeminiService: API Key not found in process.env");
+      return null;
+  }
   return new GoogleGenAI({ apiKey });
 };
 

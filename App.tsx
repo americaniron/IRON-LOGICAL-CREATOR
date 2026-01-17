@@ -22,10 +22,7 @@ import ComparisonPanel from './components/ComparisonPanel';
 import PipelinePanel from './components/PipelinePanel';
 import ThemePanel from './components/ThemePanel';
 import { XIcon } from './components/common/Icons';
-import { AuthProvider } from './contexts/AuthProvider';
-import { ConfigProvider, ConfigContext } from './contexts/ConfigProvider';
-import { SystemStatusProvider } from './contexts/SystemStatusProvider';
-import { AssetProvider } from './contexts/AssetProvider';
+import { ConfigContext } from './contexts/ConfigProvider';
 
 
 const App: React.FC = () => {
@@ -37,10 +34,10 @@ const App: React.FC = () => {
   
   const [activeOverlay, setActiveOverlay] = useState<Overlay>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { playFeedback } = useContext(ConfigContext);
+  const config = useContext(ConfigContext);
 
   const handleTaskChange = (task: Task) => {
-    playFeedback('click');
+    config?.playFeedback?.('click');
     setActiveTask(task);
     setActiveOverlay(null);
     setIsSidebarOpen(false);
@@ -48,7 +45,7 @@ const App: React.FC = () => {
   };
 
   const handleOverlayChange = (overlay: Overlay) => {
-    playFeedback('click');
+    config?.playFeedback?.('click');
     setActiveOverlay(overlay);
     setIsSidebarOpen(false);
   };
@@ -71,9 +68,35 @@ const App: React.FC = () => {
     }
   };
 
+  const renderPanel = (activeTask: Task) => {
+    switch (activeTask) {
+      case Task.Chat: return <ChatPanel />;
+      case Task.TextToImage: return <ImagePanel />;
+      case Task.TextToVideo: return <VideoPanel task={Task.TextToVideo} />;
+      case Task.ImageToVideo: return <VideoPanel task={Task.ImageToVideo} />;
+      case Task.TextToSpeech: return <SpeechPanel />;
+      case Task.LiveConversation: return <LiveConversationPanel />;
+      case Task.OpenAIChat: return <OpenAIChatPanel />;
+      case Task.OpenAITextToImage: return <OpenAIImagePanel />;
+      case Task.OpenAITextToVideo: return <OpenAIVideoPanel />;
+      case Task.GrokChat: return <GrokChatPanel />;
+      case Task.GrokTextToImage: return <GrokImagePanel />;
+      case Task.GrokImageToVideo: return <GrokVideoPanel />;
+      case Task.Comparison: return <ComparisonPanel />;
+      case Task.Pipeline: return <PipelinePanel />;
+      case Task.ImageEdit: return <ImageEditPanel />;
+      case Task.Theme: return <ThemePanel />;
+      default: return <ChatPanel />;
+    }
+  };
 
   return (
       <div className="flex h-screen w-screen overflow-hidden hex-grid bg-aura-indigo">
+        {/* SUCCESS BADGE */}
+        <div className="fixed bottom-4 left-4 z-[9999] bg-green-500/20 border border-green-500 px-3 py-1 rounded text-[10px] font-mono text-green-400 uppercase tracking-tighter">
+            UI Loaded Successfully ✅
+        </div>
+
         <Sidebar 
           activeTask={activeTask} setActiveTask={handleTaskChange} 
           isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
@@ -81,18 +104,18 @@ const App: React.FC = () => {
         />
         <div className="flex-1 flex flex-col min-w-0 relative">
           <Header setIsSidebarOpen={setIsSidebarOpen} />
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-thin animate-in fade-in-0 duration-500">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-thin animate-in">
             {renderPanel(activeTask)}
           </main>
 
           {activeOverlay && (
              <div className="fixed inset-0 z-40">
                 <div 
-                    className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300"
+                    className="absolute inset-0 bg-black/80 backdrop-blur-sm fade-in-0 duration-300"
                     onClick={() => setActiveOverlay(null)}
                 ></div>
-                <div className="absolute top-0 right-0 h-full w-full max-w-4xl bg-aura-slate/80 backdrop-blur-lg border-l border-aura-mauve shadow-2xl flex flex-col animate-in slide-in-from-right-full duration-500">
-                    <div className="flex justify-between items-center p-6 border-b border-aura-mauve/50">
+                <div className="absolute top-0 right-0 h-full w-full max-w-4xl bg-[#0A0B10] border-l border-aura-violet shadow-[0_0_50px_rgba(240,0,255,0.2)] flex flex-col animate-in slide-in-from-right-full duration-300">
+                    <div className="flex justify-between items-center p-6 border-b border-aura-mauve">
                         <div className="flex items-center gap-4">
                         <div className="w-3 h-3 bg-aura-violet rounded-full animate-pulse" style={{boxShadow: '0 0 10px var(--aura-violet)'}}></div>
                         <h3 className="font-heading uppercase text-xl tracking-widest text-aura-light">
@@ -115,38 +138,4 @@ const App: React.FC = () => {
   );
 };
 
-const renderPanel = (activeTask: Task) => {
-  switch (activeTask) {
-    case Task.Chat: return <ChatPanel />;
-    case Task.TextToImage: return <ImagePanel />;
-    case Task.TextToVideo: return <VideoPanel task={Task.TextToVideo} />;
-    case Task.ImageToVideo: return <VideoPanel task={Task.ImageToVideo} />;
-    case Task.TextToSpeech: return <SpeechPanel />;
-    case Task.LiveConversation: return <LiveConversationPanel />;
-    case Task.OpenAIChat: return <OpenAIChatPanel />;
-    case Task.OpenAITextToImage: return <OpenAIImagePanel />;
-    case Task.OpenAITextToVideo: return <OpenAIVideoPanel />;
-    case Task.GrokChat: return <GrokChatPanel />;
-    case Task.GrokTextToImage: return <GrokImagePanel />;
-    case Task.GrokImageToVideo: return <GrokVideoPanel />;
-    case Task.Comparison: return <ComparisonPanel />;
-    case Task.Pipeline: return <PipelinePanel />;
-    case Task.ImageEdit: return <ImageEditPanel />;
-    case Task.Theme: return <ThemePanel />;
-    default: return <ChatPanel />;
-  }
-};
-
-const AppWithProviders: React.FC = () => (
-  <ConfigProvider>
-    <SystemStatusProvider>
-      <AuthProvider>
-        <AssetProvider>
-          <App />
-        </AssetProvider>
-      </AuthProvider>
-    </SystemStatusProvider>
-  </ConfigProvider>
-);
-
-export default AppWithProviders;
+export default App;

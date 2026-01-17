@@ -19,12 +19,12 @@ interface Theme {
 }
 
 const defaultTheme: Theme = {
-  name: 'AURA Default',
-  indigo: '#05050A',
-  slate: '#0F1016',
-  mauve: '#2E324A',
-  violet: '#D946EF',
-  cyan: '#00E0FF',
+  name: 'AURA Hyper-Neon',
+  indigo: '#030305',
+  slate: '#0A0B10',
+  mauve: '#2A1F3D',
+  violet: '#F000FF',
+  cyan: '#00FFFF',
   light: '#FFFFFF',
   gray: '#94A3B8',
 };

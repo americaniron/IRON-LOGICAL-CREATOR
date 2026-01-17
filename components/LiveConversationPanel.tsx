@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
-import { LiveServerMessage, LiveSession } from "@google/genai";
+import type { LiveServerMessage } from "@google/genai";
 import { connectLiveSession, createPcmBlob, decodePcmAudioData, decode } from '../services/geminiService';
 import { SystemStatusContext } from '../contexts/SystemStatusProvider';
 import { Microphone, Bot, User } from './common/Icons';
@@ -21,7 +21,8 @@ const LiveConversationPanel: React.FC = () => {
     const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
-    const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
+    // Use 'any' for session to avoid import failures if LiveSession type is not exported in the specific version
+    const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
     const audioInfrastructureRef = useRef<{
         inputAudioContext: AudioContext,
@@ -47,7 +48,7 @@ const LiveConversationPanel: React.FC = () => {
         audioWorkletNodeRef.current?.disconnect();
         audioInfrastructureRef.current.stream.getTracks().forEach(track => track.stop());
         
-        sessionPromiseRef.current?.then(session => session.close());
+        sessionPromiseRef.current?.then((session: any) => session.close());
         sessionPromiseRef.current = null;
         
         audioInfrastructureRef.current.sources.forEach(source => source.stop());
@@ -93,7 +94,7 @@ const LiveConversationPanel: React.FC = () => {
 
             workletNode.port.onmessage = (event) => {
                 const pcmBlob = createPcmBlob(event.data);
-                sessionPromiseRef.current?.then((session) => {
+                sessionPromiseRef.current?.then((session: any) => {
                     session.sendRealtimeInput({ media: pcmBlob });
                 });
             };
@@ -273,8 +274,6 @@ const LiveConversationPanel: React.FC = () => {
                     {connectionState !== 'connected' && connectionState !== 'connecting' ? (
                         <Button 
                             onClick={startConversation} 
-                            // FIX: The original check `connectionState === 'connecting'` was redundant within its conditional block and caused a type error.
-                            // The button should logically be disabled while the connection is in the process of closing.
                             disabled={connectionState === 'closing'}
                             className="w-full max-w-sm !py-6 !text-2xl"
                         >
