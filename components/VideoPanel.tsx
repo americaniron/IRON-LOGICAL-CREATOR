@@ -1,16 +1,15 @@
-import React, { useState, useCallback, useEffect, useMemo, useContext } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Task } from '../types';
-import { useApiKeySelection } from '../hooks/useApiKeySelection';
-import { AssetContext } from '../contexts/AssetProvider';
-import { SystemStatusContext } from '../contexts/SystemStatusProvider';
+import { useApiKeyManager } from '../hooks/useApiKeyManager';
+import { useAppContext } from '../context/AppContext';
 import Button from './common/Button';
 import Select from './common/Select';
 import Slider from './common/Slider';
 import FileUpload from './common/FileUpload';
 import Spinner from './common/Spinner';
-import ApiKeyPrompt from './common/ApiKeyPrompt';
-import WorkbenchHeader from './common/WorkbenchHeader';
+import ProviderKeyPrompt from './common/ProviderKeyPrompt';
 import { useVeo } from '../hooks/useVeo';
+import { upscaleVideo, downloadAsset } from '../services/geminiService';
 import { Download, Maximize, Video } from './common/Icons';
 
 interface VideoPanelProps {
@@ -20,77 +19,61 @@ interface VideoPanelProps {
 const aspectRatios = ["16:9", "9:16"];
 const resolutions = ["720p", "1080p"];
 const models = ["veo-3.1-fast-generate-preview", "veo-3.1-generate-preview"];
-const upscaleStrengths = [{value: '2x', label: '2X Resolution'}, {value: '4x', label: '4X Fidelity'}];
+const upscaleStrengths = [{value: '2x', label: '2X RESOLUTION'}, {value: '4x', label: '4X FIDELITY'}];
 
 const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
-  const { addAsset, pipedPrompt, pipedImage, pipedParentId, setPipe } = useContext(AssetContext);
-  const { notify } = useContext(SystemStatusContext);
-
   const [prompt, setPrompt] = useState('');
   const [duration, setDuration] = useState(15);
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [resolution, setResolution] = useState('720p');
   const [model, setModel] = useState('veo-3.1-generate-preview');
-  const [imageFile, setImageFile] = useState<{ file: File | null; preview: string } | null>(null);
+  const [imageFile, setImageFile] = useState<{ file: File; preview: string } | null>(null);
   
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
   const [upscaleError, setUpscaleError] = useState<string | null>(null);
   const [upscaleStrength, setUpscaleStrength] = useState('2x');
 
-  const { isKeySelected, isChecking, selectKey, resetKeySelection } = useApiKeySelection();
-  const { isLoading, error, resultUrl, progressMessage, generateVideo } = useVeo();
+  const { addAsset } = useAppContext();
+  const { isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('gemini_pro');
+  const { isLoading, error, resultUrl, progressMessage, estimatedTimeRemaining, generateVideo } = useVeo();
 
   const maxDuration = useMemo(() => {
     return model === 'veo-3.1-generate-preview' ? 60 : 15;
   }, [model]);
 
+  // Logic to lock resolution to 720p for long-form content (>8s)
   useEffect(() => {
-    const handleHalt = () => {
-      window.location.reload(); 
-    };
-    window.addEventListener('emergency-halt', handleHalt);
-    return () => window.removeEventListener('emergency-halt', handleHalt);
-  }, []);
-
-  useEffect(() => {
-    if (pipedPrompt) setPrompt(pipedPrompt);
-    if (pipedImage) setImageFile({ file: null, preview: pipedImage });
-    
-    if (pipedPrompt || pipedImage) setPipe('', null, null);
-  }, [pipedPrompt, pipedImage, setPipe]);
+    if (duration > 8 && resolution === '1080p') {
+      setResolution('720p');
+    }
+  }, [duration, resolution]);
 
   useEffect(() => {
     if (duration > maxDuration) {
       setDuration(maxDuration);
     }
-    if (duration > 15 && model !== 'veo-3.1-generate-preview') {
-      setModel('veo-3.1-generate-preview');
-      notify("Model switched to Ultra for extended duration", "info");
-    }
-  }, [maxDuration, duration, model, notify]);
+  }, [maxDuration, duration]);
   
   useEffect(() => {
     setUpscaledUrl(null);
     setUpscaleError(null);
     if (resultUrl) {
-      addAsset({
-        type: 'video',
-        url: resultUrl,
-        prompt: prompt,
-        provider: 'iron',
-        parentId: pipedParentId || undefined
-      });
+        addAsset({
+            id: `gemini-vid-${Date.now()}`,
+            url: resultUrl,
+            type: 'video',
+            prompt: prompt || 'Image to Video generation',
+            provider: 'Gemini',
+            timestamp: Date.now(),
+        });
     }
-  }, [resultUrl, addAsset, prompt, pipedParentId]);
+  }, [resultUrl]);
 
   const handleFileChange = (file: File | null) => {
     if (file) {
       setImageFile({ file, preview: URL.createObjectURL(file) });
     } else {
-      if (imageFile) {
-        URL.revokeObjectURL(imageFile.preview);
-      }
       setImageFile(null);
     }
   };
@@ -106,58 +89,67 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         aspectRatio,
         resolution,
         model,
-        imageFile: imageFile?.file || (pipedImage ? undefined : null),
-        imageBase64: pipedImage || undefined,
-    }, resetKeySelection);
-  }, [prompt, duration, aspectRatio, resolution, model, imageFile, task, generateVideo, resetKeySelection, pipedImage]);
+        imageFile: imageFile?.file
+    }, resetKey);
+  }, [prompt, duration, aspectRatio, resolution, model, imageFile, task, generateVideo, resetKey]);
 
   const handleUpscale = useCallback(async () => {
+    if (!resultUrl) return;
     setIsUpscaling(true);
-    setUpscaleError("NOTICE: Video upscaling is currently a simulated feature.");
-    await new Promise(r => setTimeout(r, 2000));
-    setIsUpscaling(false);
-  }, []);
+    setUpscaleError(null);
+    try {
+      const enhancedUrl = await upscaleVideo(resultUrl, upscaleStrength);
+      setUpscaledUrl(enhancedUrl);
+    } catch (err) {
+      setUpscaleError(err instanceof Error ? err.message : 'Upscale failure.');
+    } finally {
+      setIsUpscaling(false);
+    }
+  }, [resultUrl, upscaleStrength]);
 
   const currentVideoUrl = upscaledUrl || resultUrl;
 
   return (
-    <div className="flex flex-col xl:flex-row gap-8 w-full h-full">
-      <div className="control-panel p-8 flex flex-col h-full overflow-y-auto scrollbar-thin order-2 xl:order-1 xl:w-1/2">
-        <WorkbenchHeader 
-          title={task === Task.TextToVideo ? 'Video Generation' : 'Image to Video'} 
-          station="Module_02" 
-          piped={!!pipedPrompt || !!pipedImage} 
-        />
+    <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 w-full h-full">
+      <div className="control-panel p-4 sm:p-8 flex flex-col h-full overflow-y-auto scrollbar-thin">
+        <div className="flex justify-between items-end mb-6 pb-4 border-b-2 border-industrial-gray">
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
+                {task === Task.TextToVideo ? 'ASSEMBLY' : 'VFX_RIG'}
+              </h3>
+              <p className="text-[10px] font-mono text-cyan-400 tracking-[0.4em] uppercase font-bold">STATION_42 // ONLINE</p>
+            </div>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {!isChecking && !isKeySelected && (
-            <ApiKeyPrompt modelName="IRON Video Synthesis" onSelectKey={selectKey} />
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-8">
+          {isReady && isKeyRequired && (
+            <ProviderKeyPrompt provider="gemini_pro" onKeySubmit={saveKey} />
           )}
           
           {task === Task.ImageToVideo && (
             <FileUpload
-              label="Source Frame"
+              label="BASE_FRAME"
               onFileChange={handleFileChange}
-              preview={imageFile?.preview || pipedImage || undefined}
+              preview={imageFile?.preview}
             />
           )}
           
-          <div className="relative group">
-            <label className="block text-[10px] font-mono font-black uppercase tracking-[0.2em] text-heavy-yellow mb-2">
-              &gt; Prompt
+          <div className="relative">
+            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-2 font-mono">
+              &gt; BLUEPRINT_DIRECTIVE
             </label>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the desired video output..."
-              rows={8}
-              className="w-full px-4 py-3 bg-asphalt border-2 border-t-black border-l-black border-b-industrial-gray border-r-industrial-gray text-text-light focus:outline-none transition-colors text-sm tracking-wider uppercase shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] focus-ring"
+              placeholder="ENTER SCENE SPECIFICATIONS..."
+              rows={4}
+              className="w-full px-4 py-3 bg-[#111317] border-2 border-[#333840] text-white focus:outline-none focus:border-cyan-400 font-mono shadow-inner transition-colors text-xs uppercase"
               required={task === Task.TextToVideo}
             />
           </div>
 
           <Slider
-            label="Duration"
+            label="TIMELINE_LENGTH"
             id="duration"
             min={5}
             max={maxDuration}
@@ -167,73 +159,124 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
             displayValue={`${duration}s`}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Select label="Aspect Ratio" id="aspect_ratio" value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} options={aspectRatios.map(r => ({ value: r, label: r }))} />
-            <Select label="Resolution" id="resolution" value={resolution} onChange={(e) => setResolution(e.target.value)} options={resolutions.map(r => ({ value: r, label: r }))} />
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
+            <Select
+              label="RATIO"
+              id="aspect_ratio"
+              value={aspectRatio}
+              onChange={(e) => setAspectRatio(e.target.value)}
+              options={aspectRatios.map(r => ({ value: r, label: r }))}
+            />
+            <Select
+                label="FIDELITY"
+                id="resolution"
+                value={resolution}
+                onChange={(e) => setResolution(e.target.value)}
+                options={resolutions.map(r => ({ 
+                    value: r, 
+                    label: r === '1080p' && duration > 8 ? `${r} (8S LIMIT)` : r 
+                }))}
+                disabled={duration > 8}
+            />
           </div>
 
-          <Select 
-            label="Generation Model" 
-            id="model" 
-            value={model} 
-            onChange={(e) => setModel(e.target.value)} 
-            options={models.map(m => ({ value: m, label: m.includes('fast') ? 'Veo 3.1 Fast' : 'Veo 3.1 Ultra' }))}
-            disabled={duration > 15}
-          />
+          <Select
+              label="ENGINE"
+              id="model"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              options={models.map(m => ({ 
+                  value: m, 
+                  label: m.includes('fast') ? 'RAPID (15S MAX)' : 'ENTERPRISE (60S MAX)' 
+              }))}
+            />
 
-          <Button type="submit" size="xl" disabled={isLoading || !isKeySelected} className="w-full">
-            {isLoading ? 'Generating...' : 'Generate Video'}
+          {duration > 8 && (
+            <p className="text-[10px] font-mono text-orange-500 uppercase animate-pulse">
+               // Notice: Long-form fabrication (>8s) requires 720p calibration.
+            </p>
+          )}
+
+          <Button type="submit" disabled={isLoading || isKeyRequired} className="w-full !py-4 sm:!py-6">
+            {isLoading ? 'ORCHESTRATING...' : 'INITIALIZE'}
           </Button>
         </form>
       </div>
 
-      <div className="monitor-screen flex flex-col items-center justify-center h-full relative overflow-hidden p-6 min-h-[400px] order-1 xl:order-2 xl:w-1/2 blueprint-grid">
-        <div className="absolute top-4 left-6 text-xs font-body text-heavy-yellow tracking-widest uppercase font-bold animate-pulse z-20">
-            // Synthesis Monitor
+      <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
+        <div className="absolute top-2 left-4 text-[10px] font-mono text-cyan-400 tracking-widest uppercase font-bold animate-pulse">
+            // PROD_MONITOR_01
         </div>
         
-        {isLoading && <Spinner text={progressMessage} />}
-        {isUpscaling && <Spinner text="Upscaling..." />}
+        {isLoading && (
+          <div className="text-center">
+            <Spinner text={progressMessage.toUpperCase()} />
+            {estimatedTimeRemaining !== null && (
+              <p className="mt-4 font-mono text-[10px] text-cyan-400 animate-pulse tracking-widest">
+                EST_TIME: {Math.floor(estimatedTimeRemaining / 60)}m {estimatedTimeRemaining % 60}s
+              </p>
+            )}
+          </div>
+        )}
+        
+        {isUpscaling && <Spinner text="ENHANCING VISUALS..." />}
         
         {error && (
-            <div className="text-center space-y-4 animate-in p-10 bg-red-900/10 border-2 border-red-500/50">
-                <p className="text-red-400 font-heading uppercase tracking-widest text-2xl">Generation Failed</p>
-                <p className="font-body text-xs text-red-300">{error}</p>
-                <Button onClick={() => window.location.reload()} variant="danger" size="sm">Reset</Button>
+            <div className="text-center space-y-4 p-6 bg-red-900/20 border-2 border-red-500">
+                <p className="text-red-500 font-['Black_Ops_One'] uppercase tracking-widest text-lg">!! FAILURE !!</p>
+                <p className="font-mono text-[8px] text-red-400 uppercase tracking-tighter">{error}</p>
+                <Button onClick={() => window.location.reload()} variant="danger" className="mx-auto mt-4 !text-[10px] !py-2">RESET</Button>
             </div>
         )}
         
         {currentVideoUrl && !isLoading && !isUpscaling && (
-          <div className="text-center w-full h-full flex flex-col items-stretch justify-center p-2 animate-in fade-in-0 zoom-in-95 duration-500">
-            <div className="relative group w-full bg-black border-2 border-black shadow-2xl overflow-hidden">
-              <video key={currentVideoUrl} src={currentVideoUrl} controls autoPlay loop className="w-full h-auto max-h-[45vh]" />
+          <div className="text-center w-full h-full flex flex-col items-stretch justify-center animate-in fade-in duration-700">
+            <div className="relative group w-full bg-black border-2 border-industrial-gray shadow-2xl overflow-hidden">
+              <video 
+                key={currentVideoUrl}
+                src={currentVideoUrl} 
+                controls 
+                autoPlay 
+                loop 
+                className="w-full h-auto max-h-[40vh] sm:max-h-[50vh]" 
+              />
+              <div className="absolute top-4 right-4 caution-stripes h-4 w-16 opacity-30"></div>
             </div>
             
-            <div className="mt-4 bg-steel/80 p-5 border-2 border-industrial-gray w-full text-left shadow-2xl space-y-4">
-               <div className="flex justify-between items-center border-b border-industrial-gray/50 pb-4">
-                    <p className="text-base text-text-light font-heading uppercase tracking-wider">Asset Ready</p>
-                    <a href={currentVideoUrl} download className="flex items-center gap-2 bg-heavy-yellow text-black px-4 py-2 text-sm font-heading uppercase hover:bg-yellow-300">
-                        <Download className="h-5 w-5" /> Download
-                    </a>
+            <div className="mt-4 bg-black/80 p-3 sm:p-4 border-2 border-industrial-gray w-full text-left shadow-2xl space-y-4">
+               <div className="flex justify-between items-center border-b border-industrial-gray pb-2">
+                    <p className="text-[10px] text-white font-mono uppercase tracking-widest font-bold">ASSET_MANIFEST</p>
+                    <button
+                        onClick={() => downloadAsset(currentVideoUrl, `im-fab-${Date.now()}.mp4`)}
+                        className="flex items-center gap-2 bg-cyan-400 text-black px-3 py-1.5 text-[10px] font-['Black_Ops_One'] uppercase tracking-widest hover:bg-white transition-colors"
+                    >
+                        <Download className="h-3 w-3" />
+                        Export
+                    </button>
                </div>
-               <div className="bg-asphalt/50 border border-industrial-gray p-5">
-                  <h4 className="flex items-center gap-2 text-sm font-heading uppercase tracking-widest text-heavy-yellow mb-5">
-                    <Maximize className="h-5 w-5"/> Upscale (Prototype)
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
-                     <Select label="Strength" id="upscale_strength" value={upscaleStrength} onChange={(e) => setUpscaleStrength(e.target.value)} options={upscaleStrengths} />
-                      <Button onClick={handleUpscale} disabled size="md" variant="secondary">Execute</Button>
+               <div className="bg-asphalt/50 border border-industrial-gray p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                     <Select
+                        label="MOD_STRENGTH"
+                        id="upscale_strength"
+                        value={upscaleStrength}
+                        onChange={(e) => setUpscaleStrength(e.target.value)}
+                        options={upscaleStrengths}
+                        disabled={isUpscaling}
+                      />
+                      <Button onClick={handleUpscale} disabled={isUpscaling} className="!py-2 !text-[10px]">
+                        {isUpscaling ? 'ENHANCING...' : 'ENHANCE'}
+                      </Button>
                   </div>
-                  {upscaleError && <p className="text-yellow-400 text-xs font-body mt-3 text-center uppercase">{upscaleError}</p>}
                </div>
             </div>
           </div>
         )}
         
         {!isLoading && !isUpscaling && !error && !resultUrl && (
-          <div className="text-center text-industrial-gray/50 font-body uppercase tracking-widest">
-            <Video className="mx-auto h-32 w-32 opacity-20 mb-8" />
-            <p className="text-xl font-heading text-text-muted tracking-widest">Display Idle</p>
+          <div className="text-center text-gray-800 font-mono uppercase tracking-widest opacity-50">
+            <Video className="mx-auto h-12 w-12 sm:h-20 sm:w-20 mb-4" />
+            <p className="text-xs">PROD_BAY_IDLE</p>
           </div>
         )}
       </div>

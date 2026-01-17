@@ -1,26 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
-import { Message, Task, LogSeverity } from '../types.ts';
-import { AssetContext } from '../contexts/AssetProvider.tsx';
-import { SystemStatusContext } from '../contexts/SystemStatusProvider.tsx';
-import { generateChatStream } from '../services/geminiService.ts';
-import { Send, User, Bot, Image, Video } from './common/Icons.tsx';
-import Spinner from './common/Spinner.tsx';
-import Input from './common/Input.tsx';
-import Button from './common/Button.tsx';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Message } from '../types';
+import { generateChatResponse } from '../services/geminiService';
+import { Send, User, Bot, Download } from './common/Icons';
+import Spinner from './common/Spinner';
+import { useMountedState } from '../hooks/useMountedState';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
-interface MessageWithSources extends Message {
-  sources?: any[];
-}
+const SUGGESTIONS = ["ANALYZE PRODUCTION EFFICIENCY", "GENERATE STORYBOARD FOR SCI-FI SHORT", "CALIBRATE MULTIMEDIA WORKFLOW"];
 
 const ChatPanel: React.FC = () => {
-  const { setPipe } = useContext(AssetContext);
-  const { logOperation, notify } = useContext(SystemStatusContext);
-
-  const [messages, setMessages] = useState<MessageWithSources[]>([
-    { id: '1', text: "IRON-CORE INTERFACE ONLINE. AWAITING DIRECTIVE.", sender: 'bot' }
+  const [messages, setMessages] = useLocalStorage<Message[]>('im_chat_history_gemini', [
+    { id: '1', text: "OPERATIONS ONLINE. LOGGING IN AS COMMANDER. STATE YOUR FABRICATION REQUIREMENTS.", sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useMountedState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -31,172 +24,112 @@ const ChatPanel: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = useCallback(async () => {
-    if (input.trim() === '' || isLoading) return;
+  const handleExport = () => {
+    const log = messages.map(m => `[${m.sender.toUpperCase()}] ${m.text}`).join('\n\n');
+    const blob = new Blob([`IRON MEDIA - FIELD REPORT\nGENERATED: ${new Date().toISOString()}\n\n${log}`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `IM-FIELD-REPORT-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-    const startTime = Date.now();
-    const userMessage: MessageWithSources = { id: Date.now().toString(), text: input, sender: 'user' };
+  const handleSend = useCallback(async (overrideInput?: string) => {
+    const textToSend = overrideInput || input;
+    if (textToSend.trim() === '' || isLoading) return;
+
+    const userMessage: Message = { id: Date.now().toString(), text: textToSend, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
-    const botMessageId = (Date.now() + 1).toString();
-    const botMessage: MessageWithSources = { id: botMessageId, text: '', sender: 'bot', isStreaming: true, sources: [] };
-    setMessages(prev => [...prev, botMessage]);
-
-    let fullText = "";
-    let accumulatedSources: any[] = [];
+    const botTypingMessage: Message = { id: (Date.now() + 1).toString(), text: '', sender: 'bot', isTyping: true };
+    setMessages(prev => [...prev, botTypingMessage]);
 
     try {
-      const stream = generateChatStream(input);
-      for await (const chunk of stream) {
-        fullText += (chunk.text || "");
-        if (chunk.groundingChunks && chunk.groundingChunks.length > 0) {
-          accumulatedSources = [...accumulatedSources, ...chunk.groundingChunks];
-        }
-
-        setMessages(prev => prev.map(m => m.id === botMessageId ? { 
-          ...m, 
-          text: fullText,
-          sources: accumulatedSources.length > 0 ? Array.from(new Set(accumulatedSources.map(s => JSON.stringify(s)))).map(s => JSON.parse(s)) : []
-        } : m));
-      }
-      setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, isStreaming: false } : m));
-      
-      logOperation({
-        message: `Chat Session Complete: ${input.substring(0, 20)}...`,
-        severity: LogSeverity.INFO,
-        provider: 'iron',
-        latency: Date.now() - startTime
-      });
-    } catch (error: any) {
-      const errorMessageText = 'Connection error. Please check network and try again.';
-      setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, text: errorMessageText, isStreaming: false } : m));
-      
-      logOperation({
-        message: `Chat Fault: ${error.message || 'Unknown'}`,
-        severity: LogSeverity.ERROR,
-        provider: 'iron',
-        latency: Date.now() - startTime
-      });
+      const response = await generateChatResponse(textToSend);
+      const botMessage: Message = { id: (Date.now() + 2).toString(), text: response.toUpperCase(), sender: 'bot' };
+      setMessages(prev => prev.filter(m => !m.isTyping).concat(botMessage));
+    } catch (error) {
+      const errorMessage: Message = { id: (Date.now() + 2).toString(), text: 'CRITICAL ERROR: SIGNAL LOST. RETRY COMM LINK.', sender: 'bot' };
+      setMessages(prev => prev.filter(m => !m.isTyping).concat(errorMessage));
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, logOperation, notify]);
-
-  const pipeToGenerator = (text: string, task: Task) => {
-    setPipe(text);
-    window.location.hash = `#/${task}`;
-  };
-
-  const copyIntel = (text: string) => {
-    navigator.clipboard.writeText(text);
-    notify("Response copied to clipboard", "success");
-  };
+  }, [input, isLoading, setMessages, setIsLoading]);
 
   return (
-    <div className="flex flex-col h-full max-w-5xl mx-auto control-panel p-4 md:p-6 shadow-2xl">
-       <div className="flex-1 overflow-y-auto pr-1 md:pr-4 space-y-6 md:space-y-8 pb-4 scrollbar-thin">
+    <div className="flex flex-col h-full max-w-5xl mx-auto control-panel p-4 sm:p-6 relative">
+       <div className="absolute top-4 right-6 z-20">
+          <button 
+            onClick={handleExport}
+            className="p-2 bg-industrial-gray border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all group"
+            title="Export Field Report"
+          >
+            <Download className="h-5 w-5" />
+          </button>
+       </div>
+
+       <div className="flex-1 overflow-y-auto pr-2 sm:pr-4 space-y-8 pb-4 scrollbar-thin">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex items-start gap-2 md:gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
+          <div key={msg.id} className={`flex items-start gap-3 sm:gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
             {msg.sender === 'bot' && (
-              <div className="p-2 md:p-2.5 bg-heavy-yellow border-2 border-black rounded-sm shadow-lg shrink-0">
-                <Bot className="h-4 w-4 md:h-5 md:w-5 text-black" />
+              <div className="p-2 sm:p-3 bg-cyan-400 border-2 border-black rounded-sm shadow-lg">
+                <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-black" />
               </div>
             )}
-            <div className={`relative max-w-[85%] sm:max-w-xl group ${
+            <div className={`relative max-w-[85%] sm:max-w-lg p-4 sm:p-5 border-2 ${
               msg.sender === 'user' 
-                ? 'bg-industrial-gray' 
-                : 'bg-asphalt'
-            } border-2 border-black p-4`}>
-              {msg.isTyping ? <Spinner text="THINKING..." /> : (
-                <>
-                  <div className="prose prose-sm prose-invert text-text-light whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: msg.text + (msg.isStreaming ? '▍' : '') }}></div>
-                  
-                  {msg.sources && msg.sources.length > 0 && !msg.isStreaming && (
-                    <div className="mt-4 pt-3 border-t border-industrial-gray/50 space-y-2">
-                      <p className="text-[10px] text-text-muted font-body uppercase tracking-widest">Sources:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {msg.sources.map((source, idx) => (
-                          source.web && (
-                            <a 
-                              key={idx} 
-                              href={source.web.uri} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="bg-asphalt border border-industrial-gray/50 px-2 py-1 text-[10px] font-body hover:border-heavy-yellow hover:text-heavy-yellow transition-all flex items-center gap-2 group/cite"
-                            >
-                              <span className="text-heavy-yellow group-hover/cite:text-text-light">[{idx + 1}]</span>
-                              <span className="truncate max-w-[150px]">{source.web.title || 'Web Result'}</span>
-                            </a>
-                          )
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {msg.sender === 'bot' && !msg.isStreaming && msg.text.length > 10 && (
-                    <div className="mt-4 flex flex-wrap gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => copyIntel(msg.text)}
-                        className="flex items-center gap-1.5 text-[10px] font-body bg-industrial-gray/50 hover:bg-industrial-gray text-text-light px-2 py-1 transition-all uppercase"
-                      >
-                        Copy
-                      </button>
-                      <button 
-                        onClick={() => pipeToGenerator(msg.text, Task.TextToImage)}
-                        className="flex items-center gap-1.5 text-[10px] font-body bg-industrial-gray/50 hover:bg-industrial-gray text-text-light px-2 py-1 transition-all uppercase"
-                      >
-                        <Image className="h-3 w-3" /> Pipe to Image
-                      </button>
-                      <button 
-                        onClick={() => pipeToGenerator(msg.text, Task.TextToVideo)}
-                        className="flex items-center gap-1.5 text-[10px] font-body bg-industrial-gray/50 hover:bg-industrial-gray text-text-light px-2 py-1 transition-all uppercase"
-                      >
-                        <Video className="h-3 w-3" /> Pipe to Video
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
+                ? 'bg-industrial-gray border-cyan-400 text-white' 
+                : 'bg-asphalt border-industrial-gray text-cyan-400 font-mono'
+            }`}>
+              <div className="rivet absolute -top-1.5 -left-1.5"></div>
+              <div className="rivet absolute -bottom-1.5 -right-1.5"></div>
+              {msg.isTyping ? <Spinner text="PROCESSING DATA..." /> : <p className="leading-relaxed font-bold tracking-tight uppercase text-xs sm:text-sm">{msg.text}</p>}
             </div>
             {msg.sender === 'user' && (
-              <div className="p-2 md:p-2.5 bg-text-light border-2 border-black rounded-sm shadow-lg shrink-0">
-                <User className="h-4 w-4 md:h-5 md:w-5 text-asphalt" />
+              <div className="p-2 sm:p-3 bg-white border-2 border-black rounded-sm shadow-lg">
+                <User className="h-5 w-5 sm:h-6 sm:w-6 text-black" />
               </div>
             )}
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="mt-4 pt-4 border-t-2 border-industrial-gray/50">
-        <form 
-          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-          className="flex items-start gap-2"
-        >
-          <div className="flex-1">
-            <Input
-              label="Input Command"
-              id="chat-input"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => {if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
-              placeholder="Enter your directive..."
-              disabled={isLoading}
-              className="!uppercase-off"
-            />
+
+      <div className="mt-4 sm:mt-8 pt-4 sm:pt-6 border-t-4 border-industrial-gray">
+        {messages.length === 1 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {SUGGESTIONS.map(s => (
+              <button 
+                key={s} 
+                onClick={() => handleSend(s)}
+                className="text-[10px] font-mono border border-industrial-gray px-2 py-1 hover:border-cyan-400 hover:text-cyan-400 transition-colors uppercase"
+              >
+                > {s}
+              </button>
+            ))}
           </div>
-          <Button
-            type="submit"
+        )}
+        <div className="flex items-center bg-asphalt border-2 border-industrial-gray p-1 focus-within:border-cyan-400 transition-colors">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="INPUT COMMAND OR COORDINATES..."
+            className="flex-1 bg-transparent border-none focus:ring-0 text-white font-mono placeholder-gray-700 px-4 sm:px-6 uppercase text-xs sm:text-sm"
+            disabled={isLoading}
+          />
+          <button
+            onClick={() => handleSend()}
             disabled={isLoading || !input.trim()}
-            variant="primary"
-            className="!p-3.5"
-            size="md"
-            throttleMs={500}
+            className="p-3 sm:p-4 bg-cyan-400 text-black hover:bg-cyan-300 disabled:bg-gray-800 disabled:text-gray-600 transition-colors"
           >
-            <Send className="h-6 w-6" />
-          </Button>
-        </form>
+            <Send className="h-5 w-5 sm:h-6 sm:w-6" />
+          </button>
+        </div>
       </div>
     </div>
   );

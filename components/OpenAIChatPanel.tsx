@@ -3,17 +3,19 @@ import { Message } from '../types';
 import { generateOpenAIChatResponse } from '../services/openAIService';
 import { Send, User, BrainCircuit } from './common/Icons';
 import Spinner from './common/Spinner';
-import { useOpenAiKey } from '../hooks/useOpenAiKey';
-import OpenAiKeyPrompt from './common/OpenAiKeyPrompt';
+import { useApiKeyManager } from '../hooks/useApiKeyManager';
+import { useMountedState } from '../hooks/useMountedState';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import ProviderKeyPrompt from './common/ProviderKeyPrompt';
 
 const OpenAIChatPanel: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useLocalStorage<Message[]>('im_chat_history_openai', [
     { id: '1', text: "GUEST SYSTEM ONLINE. GPT-CLASS LANGUAGE MODEL READY FOR COMMANDS.", sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useMountedState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { apiKey, isReady, saveApiKey } = useOpenAiKey();
+  const { apiKey, isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('openai');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,19 +42,22 @@ const OpenAIChatPanel: React.FC = () => {
       setMessages(prev => prev.filter(m => !m.isTyping).concat(botMessage));
     } catch (error) {
       const errorMessageText = error instanceof Error ? error.message.toUpperCase() : 'UNKNOWN GUEST SYSTEM FAILURE.';
+      if (error instanceof Error && (error.message.includes('401') || error.message.toLowerCase().includes('incorrect api key'))) {
+        resetKey();
+      }
       const errorMessage: Message = { id: (Date.now() + 2).toString(), text: `CRITICAL ERROR: ${errorMessageText}`, sender: 'bot' };
       setMessages(prev => prev.filter(m => !m.isTyping).concat(errorMessage));
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, apiKey]);
+  }, [input, isLoading, apiKey, setMessages, setIsLoading, resetKey]);
 
   if (!isReady) {
     return <div className="flex items-center justify-center h-full"><Spinner text="INITIALIZING GUEST SYSTEMS..." /></div>;
   }
   
-  if (!apiKey) {
-    return <div className="max-w-3xl mx-auto pt-10"><OpenAiKeyPrompt onKeySubmit={saveApiKey} /></div>;
+  if (isKeyRequired) {
+    return <div className="max-w-3xl mx-auto pt-10"><ProviderKeyPrompt provider="openai" onKeySubmit={saveKey} /></div>;
   }
 
   return (

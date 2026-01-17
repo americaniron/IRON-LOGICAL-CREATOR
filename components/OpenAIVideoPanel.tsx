@@ -1,193 +1,200 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { generateOpenAIVideo } from '../services/openAIService';
-import { useOpenAiKey } from '../hooks/useOpenAiKey';
+import React, { useState, useCallback, useEffect } from 'react';
+import { generateOpenAIVideo, upscaleOpenAIVideo } from '../services/openAIService';
+import { useApiKeyManager } from '../hooks/useApiKeyManager';
+import { useMountedState } from '../hooks/useMountedState';
+import { useAppContext } from '../context/AppContext';
+import { downloadAsset } from '../services/geminiService';
 import Button from './common/Button';
 import Spinner from './common/Spinner';
-import OpenAiKeyPrompt from './common/OpenAiKeyPrompt';
+import ProviderKeyPrompt from './common/ProviderKeyPrompt';
 import Select from './common/Select';
-import WorkbenchHeader from './common/WorkbenchHeader';
-import { Video, Maximize } from './common/Icons';
+import FileUpload from './common/FileUpload';
+import { Video, Maximize, Download } from './common/Icons';
 
 const upscaleStrengths = [{value: '2x', label: '2X RESOLUTION'}, {value: '4x', label: '4X FIDELITY'}];
 
 const OpenAIVideoPanel: React.FC = () => {
-  const [prompt, setPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [statusLog, setStatusLog] = useState<string[]>([]);
+  const [prompt, setPrompt] = useMountedState('');
+  const [imageFile, setImageFile] = useMountedState<{ file: File; preview: string } | null>(null);
+  const [isLoading, setIsLoading] = useMountedState(false);
+  const [error, setError] = useMountedState<string | null>(null);
+  const [resultUrl, setResultUrl] = useMountedState<string | null>(null);
   
-  const [isUpscaling, setIsUpscaling] = useState(false);
-  const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
-  const [upscaleError, setUpscaleError] = useState<string | null>(null);
-  const [upscaleStrength, setUpscaleStrength] = useState('2x');
+  const [isUpscaling, setIsUpscaling] = useMountedState(false);
+  const [upscaledUrl, setUpscaledUrl] = useMountedState<string | null>(null);
+  const [upscaleError, setUpscaleError] = useMountedState<string | null>(null);
+  const [upscaleStrength, setUpscaleStrength] = useMountedState('2x');
 
-  const { apiKey, isReady, saveApiKey } = useOpenAiKey();
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const { addAsset } = useAppContext();
+  const { apiKey, isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('openai');
 
   useEffect(() => {
     setUpscaledUrl(null);
     setUpscaleError(null);
-  }, [resultUrl]);
+  }, [resultUrl, setUpscaledUrl, setUpscaleError]);
 
-  useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  const handleFileChange = (file: File | null) => {
+    if (file) {
+      setImageFile({ file, preview: URL.createObjectURL(file) });
+    } else {
+      setImageFile(null);
     }
-  }, [statusLog]);
-
-  const addLog = (msg: string) => {
-    const timestamp = new Date().toLocaleTimeString('en-GB', { hour12: false });
-    setStatusLog(prev => [...prev, `[${timestamp}] ${msg}`]);
   };
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim()) {
-      setError('SYSTEM ERROR: NULL_PROMPT_BLUEPRINT.');
+    if (!prompt.trim() && !imageFile) {
+      setError('SYSTEM ERROR: NULL_DIRECTIVE_DATA.');
       return;
     }
-    
-    if (!apiKey) {
-      setError('SYSTEM ERROR: UNAUTHORIZED_ACCESS. API_KEY_REQUIRED.');
-      return;
-    }
+    if (!apiKey) return;
 
     setIsLoading(true);
     setError(null);
     setResultUrl(null);
-    setStatusLog([]);
 
     try {
-      addLog("INITIALIZING GUEST SYNTHESIZER RIG...");
-      addLog("VALIDATING VORTEX_CREDENTIALS...");
-      await new Promise(r => setTimeout(r, 800));
-      
-      addLog("ESTABLISHING ENCRYPTED LINK TO SORA CLUSTER...");
-      addLog("UPLOADING CINEMATIC BLUEPRINT DATA...");
-      await new Promise(r => setTimeout(r, 1200));
-
-      addLog("SYNTHESIZING PIXEL VECTORS...");
-      addLog("COMPUTING TEMPORAL CONTINUITY...");
-      
       const videoUrl = await generateOpenAIVideo(prompt, apiKey);
-      
-      addLog("FABRICATION COMPLETE. WRAPPING ASSET CONTAINER...");
-      await new Promise(r => setTimeout(r, 500));
-      
       setResultUrl(videoUrl);
+      addAsset({
+        id: `openai-vid-${Date.now()}`,
+        url: videoUrl,
+        type: 'video',
+        prompt: prompt || 'Image to Video generation',
+        provider: 'OpenAI',
+        timestamp: Date.now(),
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message.toUpperCase() : 'UNKNOWN GUEST SYNTHESIZER FAILURE.';
-      addLog(`!! CRITICAL_ERROR: ${errorMessage}`);
+      if (err instanceof Error && (err.message.includes('401') || err.message.toLowerCase().includes('incorrect api key'))) {
+        resetKey();
+      }
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [prompt, apiKey]);
+  }, [prompt, apiKey, imageFile, setIsLoading, setError, setResultUrl, addAsset, resetKey]);
   
   const handleUpscale = useCallback(async () => {
+    if (!resultUrl || !apiKey) return;
     setIsUpscaling(true);
-    setUpscaleError("GUEST NOTICE: ASSET_ENHANCEMENT IS CURRENTLY IN SIMULATION MODE.");
-    await new Promise(r => setTimeout(r, 2000));
-    setIsUpscaling(false);
-  }, []);
+    setUpscaleError(null);
+    try {
+      const enhancedUrl = await upscaleOpenAIVideo(resultUrl, upscaleStrength);
+      setUpscaledUrl(enhancedUrl);
+    } catch (err) {
+      setUpscaleError(err instanceof Error ? err.message : 'Unknown upscaling error.');
+    } finally {
+      setIsUpscaling(false);
+    }
+  }, [resultUrl, upscaleStrength, apiKey, setIsUpscaling, setUpscaleError, setUpscaledUrl]);
 
   if (!isReady) {
-    return <div className="flex items-center justify-center h-full"><Spinner text="INITIALIZING GUEST SYSTEMS..." /></div>;
+    return <div className="flex items-center justify-center h-full"><Spinner text="INITIALIZING SORA SYNTHESIZER..." /></div>;
   }
   
-  if (!apiKey) {
-    return (
-      <div className="max-w-3xl mx-auto pt-10 animate-in fade-in-0 slide-in-from-bottom-8">
-        <OpenAiKeyPrompt onKeySubmit={saveApiKey} />
-      </div>
-    );
+  if (isKeyRequired) {
+    return <div className="max-w-3xl mx-auto pt-10 px-4"><ProviderKeyPrompt provider="openai" onKeySubmit={saveKey} /></div>;
   }
 
   const currentVideoUrl = upscaledUrl || resultUrl;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 w-full h-full">
-      <div className="control-panel p-8 flex flex-col h-full overflow-y-auto scrollbar-thin order-2 lg:order-1 lg:w-1/2">
-        <WorkbenchHeader title="Sora Synth" station="GUEST_SYSTEM" provider="guest" />
-
-        <div className="mb-6 p-4 bg-yellow-900/20 border-2 border-yellow-500/50 text-xs font-mono text-yellow-500 uppercase leading-relaxed shadow-inner">
-            <div className="flex items-center gap-3 mb-2">
-                <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></div>
-                <span className="font-bold text-yellow-400">STATUS: SIMULATION_DRIVE_ACTIVE</span>
-            </div>
-            This module is a high-fidelity prototype. The OpenAI Sora API is currently in restricted preview. Generations use cached architectural logic for verification.
+    <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 w-full h-full">
+      <div className="control-panel p-4 sm:p-8 flex flex-col h-full overflow-y-auto scrollbar-thin">
+        <div className="flex justify-between items-end mb-6 sm:mb-8 pb-4 border-b-2 border-industrial-gray">
+          <div>
+              <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
+                Sora Synthesizer
+              </h3>
+              <p className="text-[10px] font-mono text-guest-green tracking-[0.4em] uppercase font-bold">GUEST_SYSTEM // ONLINE</p>
+          </div>
         </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-8">
+
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+            <FileUpload
+              label="BASE_FRAME (OPTIONAL)"
+              onFileChange={handleFileChange}
+              preview={imageFile?.preview}
+            />
+
             <div className="relative group">
                 <label className="block text-xs font-black uppercase tracking-[0.2em] text-guest-green mb-2 font-mono">
-                &gt; CINEMATIC_BLUEPRINT
+                &gt; CINEMATIC_BLUEPRINT_DIRECTIVE
                 </label>
                 <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="DESCRIBE THE SCENE..."
-                rows={10}
-                className="w-full px-4 py-3 bg-[#111317] border-2 border-[#333840] rounded-none text-white focus:outline-none focus:border-guest-green font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-sm uppercase tracking-wider leading-relaxed focus-ring"
-                required
-                disabled={isLoading}
+                placeholder="DEFINE SUBJECTS, ACTIONS, AND ENVIRONMENT..."
+                rows={6}
+                className="w-full px-4 py-3 bg-[#111317] border-2 border-[#333840] rounded-none text-white focus:outline-none focus:border-guest-green font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-xs sm:text-sm uppercase tracking-wider"
+                required={!imageFile}
                 />
             </div>
 
-          <Button type="submit" disabled={isLoading} provider="guest" className="w-full !py-6">
+          <Button type="submit" disabled={isLoading} className="w-full !py-4 sm:!py-6 !bg-guest-green !border-t-green-300 !shadow-[0_6px_0_#15803d] hover:!shadow-[0_6px_0_#16a34a] !text-black">
             {isLoading ? 'SYNTHESIZING...' : 'INITIALIZE FABRICATION'}
           </Button>
         </form>
       </div>
 
-       <div className="monitor-screen flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4 order-1 lg:order-2 lg:w-1/2">
-         <div className="absolute top-2 left-4 text-xs font-mono text-guest-green tracking-widest uppercase font-bold animate-pulse z-20">
-            // MONITOR_03 (GUEST)
+       <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
+         <div className="absolute top-2 left-4 text-[10px] font-mono text-guest-green tracking-widest uppercase font-bold animate-pulse">
+            // SYNTH_MONITOR_03
         </div>
         
-        {isLoading && (
-            <div className="w-full h-full flex flex-col items-center justify-center space-y-8 animate-in fade-in-0 duration-500">
-                <Spinner text="RENDERING..." />
-                <div className="w-full max-w-md bg-black border-2 border-guest-green/30 p-4 font-mono text-xs text-guest-green/80 overflow-y-auto max-h-40 scrollbar-thin">
-                    {statusLog.map((log, i) => (
-                        <div key={i} className="mb-1 uppercase tracking-tighter animate-in slide-in-from-left-2 duration-300">{log}</div>
-                    ))}
-                    <div ref={logEndRef} />
-                </div>
-            </div>
-        )}
-
-        {isUpscaling && <Spinner text="ENHANCING..." />}
-        {error && <p className="text-red-500 font-mono font-bold text-center border-2 border-red-500 p-6 bg-red-500/10 uppercase tracking-widest">{error}</p>}
+        {isLoading && <Spinner text="RENDERING TIMELINE..." />}
+        {isUpscaling && <Spinner text="ENHANCING VISUAL DATA..." />}
+        {error && <p className="text-red-500 font-mono font-bold text-center border-2 border-red-500 p-4 sm:p-6 bg-red-500/10 uppercase tracking-widest text-xs">{error}</p>}
         
         {currentVideoUrl && !isLoading && !isUpscaling && (
-          <div className="text-center w-full h-full flex flex-col items-stretch justify-center p-2 animate-in fade-in-0 zoom-in duration-1000">
+          <div className="text-center w-full h-full flex flex-col items-stretch justify-center animate-in fade-in duration-1000">
             <div className="relative group w-full bg-black border-2 border-industrial-gray shadow-2xl overflow-hidden">
-              <video key={currentVideoUrl} src={currentVideoUrl} controls autoPlay loop className="w-full h-auto max-h-[40vh]" />
+              <video 
+                key={currentVideoUrl}
+                src={currentVideoUrl} 
+                controls 
+                autoPlay 
+                loop 
+                className="w-full h-auto max-h-[40vh] sm:max-h-[50vh]" 
+              />
+              <button 
+                onClick={() => downloadAsset(currentVideoUrl, `oai-synth-${Date.now()}.mp4`)}
+                className="absolute top-4 right-4 p-2 bg-guest-green text-black hover:bg-white shadow-lg border border-black transition-colors"
+                title="Download Synth Asset"
+              >
+                <Download className="h-5 w-5" />
+              </button>
             </div>
-            <div className="mt-4 bg-black/80 p-4 border-2 border-industrial-gray w-full text-left shadow-2xl space-y-4">
-               <div className="border-b border-industrial-gray pb-3 flex justify-between items-center">
-                  <p className="text-[10px] text-guest-green font-mono uppercase tracking-[0.3em]">ASSET_SYNTHESIZED</p>
-               </div>
-                <div className="bg-asphalt/50 border border-industrial-gray p-4">
-                  <h4 className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-guest-green mb-4">
-                    <Maximize className="h-4 w-4"/> Fidelity Boost (Prototype)
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                     <Select label="Strength" id="upscale_strength" value={upscaleStrength} onChange={(e) => setUpscaleStrength(e.target.value)} options={upscaleStrengths} />
-                      <Button onClick={handleUpscale} provider="guest" className="!py-3 !text-sm" disabled title="This feature is a prototype and not yet implemented.">Initiate Enhancement</Button>
+            
+            <div className="mt-4 bg-black/80 p-3 sm:p-4 border-2 border-industrial-gray w-full text-left shadow-2xl space-y-4">
+                <div className="border-b border-industrial-gray pb-2">
+                  <p className="text-[10px] text-gray-500 font-mono uppercase tracking-[0.3em] mb-1">Manifest_Log</p>
+                  <p className="text-[10px] sm:text-xs text-guest-green font-mono italic uppercase line-clamp-2">"{prompt || 'IMAGE_TO_VIDEO_SYNTHESIS'}"</p>
+                </div>
+                <div className="bg-asphalt/50 border border-industrial-gray p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                     <Select
+                        label="MOD_STRENGTH"
+                        id="upscale_strength"
+                        value={upscaleStrength}
+                        onChange={(e) => setUpscaleStrength(e.target.value)}
+                        options={upscaleStrengths}
+                        disabled={isUpscaling}
+                      />
+                      <Button onClick={handleUpscale} disabled={isUpscaling} className="!py-2 !text-[10px]">
+                        {isUpscaling ? 'ENHANCING...' : 'ENHANCE'}
+                      </Button>
                   </div>
-                  {upscaleError && <p className="text-guest-green text-[10px] font-mono mt-2 text-center uppercase">{upscaleError}</p>}
                </div>
             </div>
           </div>
         )}
         
         {!isLoading && !isUpscaling && !error && !resultUrl && (
-          <div className="text-center text-gray-800 font-mono uppercase tracking-widest">
-            <Video className="mx-auto h-20 w-20 opacity-10 mb-4" />
-            <p className="text-sm">GUEST_SYNTH_BAY_IDLE</p>
+          <div className="text-center text-gray-800 font-mono uppercase tracking-widest opacity-50">
+            <Video className="mx-auto h-12 w-12 sm:h-20 sm:w-20 mb-4" />
+            <p className="text-xs">SYNTH_BAY_IDLE</p>
           </div>
         )}
       </div>

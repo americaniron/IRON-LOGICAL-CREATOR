@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
-import type { LiveServerMessage } from "@google/genai";
-import { connectLiveSession, createPcmBlob, decodePcmAudioData, decode } from '../services/geminiService.ts';
-import { SystemStatusContext } from '../contexts/SystemStatusProvider.tsx';
-import { Microphone, Bot, User, MicOff, Volume } from './common/Icons.tsx';
-import Button from './common/Button.tsx';
-import Spinner from './common/Spinner.tsx';
-import AudioVisualizer from './common/AudioVisualizer.tsx';
+
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { LiveServerMessage, LiveSession } from "@google/genai";
+import { connectLiveSession, createPcmBlob, decodePcmAudioData, decode } from '../services/geminiService';
+import { Microphone, Bot, User } from './common/Icons';
+import Button from './common/Button';
+import Spinner from './common/Spinner';
+import AudioVisualizer from './common/AudioVisualizer';
 
 type ConnectionState = "idle" | "connecting" | "connected" | "closing" | "closed" | "error";
 
@@ -16,26 +16,18 @@ interface TranscriptEntry {
 }
 
 const LiveConversationPanel: React.FC = () => {
-    const { notify } = useContext(SystemStatusContext);
     const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
     const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
-    // Audio Controls State
-    const [micGain, setMicGain] = useState(1.0);
-    const [speakerVolume, setSpeakerVolume] = useState(1.0);
-    const [isMuted, setIsMuted] = useState(false);
-
-    // Use 'any' for session to avoid import failures if LiveSession type is not exported in the specific version
-    const sessionPromiseRef = useRef<Promise<any> | null>(null);
-    const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
+    const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
     const audioInfrastructureRef = useRef<{
         inputAudioContext: AudioContext,
         outputAudioContext: AudioContext,
         stream: MediaStream,
+        scriptProcessor: ScriptProcessorNode,
         sources: Set<AudioBufferSourceNode>,
-        inputGainNode: GainNode,
-        outputGainNode: GainNode,
+        nextStartTime: number,
     } | null>(null);
     const transcriptEndRef = useRef<HTMLDivElement>(null);
 
@@ -47,33 +39,14 @@ const LiveConversationPanel: React.FC = () => {
         scrollToBottom();
     }, [transcript]);
 
-    // Update Input Gain when slider or mute changes
-    useEffect(() => {
-        if (audioInfrastructureRef.current?.inputGainNode && audioInfrastructureRef.current.inputAudioContext) {
-            const targetGain = isMuted ? 0 : micGain;
-            const currentTime = audioInfrastructureRef.current.inputAudioContext.currentTime;
-            audioInfrastructureRef.current.inputGainNode.gain.setTargetAtTime(targetGain, currentTime, 0.1);
-        }
-    }, [micGain, isMuted]);
-
-    // Update Output Volume when slider changes
-    useEffect(() => {
-        if (audioInfrastructureRef.current?.outputGainNode && audioInfrastructureRef.current.outputAudioContext) {
-            const currentTime = audioInfrastructureRef.current.outputAudioContext.currentTime;
-            audioInfrastructureRef.current.outputGainNode.gain.setTargetAtTime(speakerVolume, currentTime, 0.1);
-        }
-    }, [speakerVolume]);
-
-
     const stopConversation = useCallback(() => {
         if (!audioInfrastructureRef.current || connectionState === 'closing' || connectionState === 'closed') return;
         setConnectionState("closing");
-        notify("COMM_LINK_TERMINATED", "warning");
         
-        audioWorkletNodeRef.current?.disconnect();
+        audioInfrastructureRef.current.scriptProcessor.disconnect();
         audioInfrastructureRef.current.stream.getTracks().forEach(track => track.stop());
         
-        sessionPromiseRef.current?.then((session: any) => session.close());
+        sessionPromiseRef.current?.then(session => session.close());
         sessionPromiseRef.current = null;
         
         audioInfrastructureRef.current.sources.forEach(source => source.stop());
@@ -84,22 +57,12 @@ const LiveConversationPanel: React.FC = () => {
         setMediaStream(null);
 
         setConnectionState("closed");
-    }, [connectionState, notify]);
-
-    useEffect(() => {
-        const handleHalt = () => {
-          stopConversation();
-          setTranscript([]);
-        };
-        window.addEventListener('emergency-halt', handleHalt);
-        return () => window.removeEventListener('emergency-halt', handleHalt);
-    }, [stopConversation]);
+    }, [connectionState]);
 
 
     const startConversation = async () => {
         if (connectionState === "connecting" || connectionState === "connected") return;
         setConnectionState("connecting");
-        notify("IGNITING_COMM_LINK", "info");
         setTranscript([]);
 
         try {
@@ -109,32 +72,18 @@ const LiveConversationPanel: React.FC = () => {
             const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             const outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             
-            // Setup Input Gain
-            const inputGainNode = inputAudioContext.createGain();
-            inputGainNode.gain.value = isMuted ? 0 : micGain;
-            
-            // Setup Output Gain (Master Volume)
-            const outputGainNode = outputAudioContext.createGain();
-            outputGainNode.gain.value = speakerVolume;
-            outputGainNode.connect(outputAudioContext.destination);
-
-            await inputAudioContext.audioWorklet.addModule('audio-processor.js');
-            const workletNode = new AudioWorkletNode(inputAudioContext, 'audio-processor');
             const source = inputAudioContext.createMediaStreamSource(stream);
+            const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
             
-            // Connect: Source -> InputGain -> Worklet
-            source.connect(inputGainNode);
-            inputGainNode.connect(workletNode);
-            workletNode.connect(inputAudioContext.destination);
-
-            audioWorkletNodeRef.current = workletNode;
-
-            workletNode.port.onmessage = (event) => {
-                const pcmBlob = createPcmBlob(event.data);
-                sessionPromiseRef.current?.then((session: any) => {
+            scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                const pcmBlob = createPcmBlob(inputData);
+                sessionPromiseRef.current?.then((session) => {
                     session.sendRealtimeInput({ media: pcmBlob });
                 });
             };
+            source.connect(scriptProcessor);
+            scriptProcessor.connect(inputAudioContext.destination);
 
             let nextStartTime = 0;
             const sources = new Set<AudioBufferSourceNode>();
@@ -145,7 +94,6 @@ const LiveConversationPanel: React.FC = () => {
             sessionPromiseRef.current = connectLiveSession({
                 onopen: () => {
                     setConnectionState("connected");
-                    notify("SATELLITE_LINK_ESTABLISHED", "success");
                 },
                 onmessage: async (message: LiveServerMessage) => {
                     if (message.serverContent?.outputTranscription) {
@@ -182,15 +130,7 @@ const LiveConversationPanel: React.FC = () => {
                         const audioBuffer = await decodePcmAudioData(audioBytes, outputAudioContext, 24000, 1);
                         const sourceNode = outputAudioContext.createBufferSource();
                         sourceNode.buffer = audioBuffer;
-                        
-                        // Connect to OutputGain instead of Destination directly
-                        if (audioInfrastructureRef.current?.outputGainNode) {
-                             sourceNode.connect(audioInfrastructureRef.current.outputGainNode);
-                        } else {
-                            // Fallback if Ref is lost (shouldn't happen)
-                             sourceNode.connect(outputAudioContext.destination);
-                        }
-                        
+                        sourceNode.connect(outputAudioContext.destination);
                         sourceNode.addEventListener('ended', () => {
                             sources.delete(sourceNode);
                         });
@@ -198,19 +138,9 @@ const LiveConversationPanel: React.FC = () => {
                         nextStartTime += audioBuffer.duration;
                         sources.add(sourceNode);
                     }
-                    
-                    const interrupted = message.serverContent?.interrupted;
-                    if (interrupted) {
-                      for (const source of sources.values()) {
-                        source.stop();
-                        sources.delete(source);
-                      }
-                      nextStartTime = 0;
-                    }
                 },
                 onerror: (e) => {
                     console.error("Live session error:", e);
-                    notify(`COMM_LINK_ERROR: ${e.type}`, "error");
                     setConnectionState("error");
                     stopConversation();
                 },
@@ -223,14 +153,13 @@ const LiveConversationPanel: React.FC = () => {
                 inputAudioContext,
                 outputAudioContext,
                 stream,
+                scriptProcessor,
                 sources,
-                inputGainNode,
-                outputGainNode,
+                nextStartTime,
             };
 
         } catch (error) {
             console.error("Failed to start conversation:", error);
-            notify(`MICROPHONE_ACCESS_DENIED`, "error");
             setConnectionState("error");
         }
     };
@@ -279,7 +208,7 @@ const LiveConversationPanel: React.FC = () => {
                 <div className="rivet absolute bottom-2 left-2"></div>
                 <div className="rivet absolute bottom-2 right-2"></div>
                 
-                <div className="flex-1 mb-8 overflow-y-auto pr-4 space-y-8 scrollbar-thin">
+                <div className="flex-1 mb-8 overflow-y-auto pr-4 space-y-8 scrollbar-thin scrollbar-thumb-cyan-400">
                     {transcript.map((entry) => (
                         <div key={entry.id} className={`flex items-start gap-4 ${entry.sender === 'user' ? 'justify-end' : ''}`}>
                             {entry.sender === 'bot' && (
@@ -314,61 +243,6 @@ const LiveConversationPanel: React.FC = () => {
                             <p className="font-mono uppercase tracking-widest text-sm">Initiate_Comm_Link_To_Begin_Log</p>
                         </div>
                     )}
-                </div>
-                
-                {/* Audio Control Module */}
-                <div className="mb-6 p-4 bg-black/40 border border-industrial-gray grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                             <div className="flex items-center gap-2">
-                                <Microphone className="h-4 w-4 text-cyan-400" />
-                                <span className="text-[10px] font-mono text-cyan-400 uppercase font-black">Input_Gain</span>
-                             </div>
-                             <span className="text-[10px] font-mono text-gray-500">{(micGain * 100).toFixed(0)}%</span>
-                        </div>
-                        <input 
-                            type="range" 
-                            min="0" 
-                            max="3" 
-                            step="0.1" 
-                            value={micGain} 
-                            onChange={(e) => setMicGain(parseFloat(e.target.value))}
-                            className="w-full h-1 bg-industrial-gray rounded-full appearance-none cursor-pointer accent-cyan-400"
-                        />
-                    </div>
-
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                             <div className="flex items-center gap-2">
-                                <Volume className="h-4 w-4 text-cyan-400" />
-                                <span className="text-[10px] font-mono text-cyan-400 uppercase font-black">Output_Vol</span>
-                             </div>
-                             <span className="text-[10px] font-mono text-gray-500">{(speakerVolume * 100).toFixed(0)}%</span>
-                        </div>
-                         <input 
-                            type="range" 
-                            min="0" 
-                            max="2" 
-                            step="0.1" 
-                            value={speakerVolume} 
-                            onChange={(e) => setSpeakerVolume(parseFloat(e.target.value))}
-                            className="w-full h-1 bg-industrial-gray rounded-full appearance-none cursor-pointer accent-cyan-400"
-                        />
-                    </div>
-                    
-                    <div>
-                        <button
-                            onClick={() => setIsMuted(!isMuted)}
-                            className={`w-full py-2 flex items-center justify-center gap-2 font-mono uppercase text-xs font-bold border transition-all ${
-                                isMuted 
-                                    ? 'bg-red-500 text-white border-red-600' 
-                                    : 'bg-industrial-gray text-gray-300 border-gray-600 hover:bg-gray-700'
-                            }`}
-                        >
-                            {isMuted ? <MicOff className="h-4 w-4" /> : <Microphone className="h-4 w-4" />}
-                            {isMuted ? 'MIC_MUTED' : 'MIC_ACTIVE'}
-                        </button>
-                    </div>
                 </div>
 
                 <div className="flex-shrink-0 pt-6 border-t-4 border-industrial-gray flex flex-col items-center">

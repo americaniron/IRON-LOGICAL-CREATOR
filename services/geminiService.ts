@@ -1,17 +1,41 @@
-import { GoogleGenAI, Modality, Type } from "@google/genai";
-import type { GenerateContentResponse, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Modality, LiveServerMessage, HarmCategory, HarmBlockThreshold } from "@google/genai";
 
+// Create a new instance right before making an API call to ensure it uses the most up-to-date key.
 const getAI = () => {
-  // SAFTEY CHECK: Ensure process.env is accessible to prevent browser crashes
-  const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
-  if (!apiKey) {
-      console.warn("GeminiService: API Key not found in process.env");
-      return null;
-  }
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
 };
 
-export const sanitizePrompt = (text: string): string => text.trim().slice(0, 10000);
+const safetySettings = [
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+];
+
+const STRICT_ADHERENCE_DIRECTIVE = `
+SYSTEM_DIRECTIVE (CRITICAL): 
+YOU ARE AN ENTERPRISE-GRADE MULTIMEDIA ORCHESTRATION RIG. 
+YOUR OPERATIONAL POLICY IS ABSOLUTE ADHERENCE TO THE PROVIDED PROMPT. 
+DO NOT DEVIATE. DO NOT ADD ARTISTIC EMBELLISHMENTS BEYOND THE EXACT SPECIFICATIONS. 
+IF THE USER ASKS FOR SPECIFIC TIMINGS, COLORS, OR MOTIONS, YOU MUST COMPLY WITH 100% FIDELITY. 
+FAILURE TO COMPLY IS A COMMAND VIOLATION.
+
+USER_PRODUCTION_PROMPT: 
+`;
 
 const fileToGenerativePart = async (file: File) => {
   const base64EncodedDataPromise = new Promise<string>((resolve) => {
@@ -19,34 +43,24 @@ const fileToGenerativePart = async (file: File) => {
     reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
     reader.readAsDataURL(file);
   });
-  return { inlineData: { data: await base64EncodedDataPromise, mimeType: file.type } };
+  return {
+    inlineData: { data: await base64EncodedDataPromise, mimeType: file.type },
+  };
 };
 
-const urlToBase64 = async (url: string): Promise<{ data: string, mimeType: string }> => {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        if (reader.result) {
-            resolve({
-                data: (reader.result as string).split(',')[1],
-                mimeType: blob.type
-            });
-        } else {
-            reject(new Error("Failed to read blob as data URL."));
-        }
-    };
-    reader.onerror = (error) => reject(error);
-    reader.readAsDataURL(blob);
-  });
-};
+// --- Mock Implementations ---
+const mockWait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const MOCK_CHAT_RESPONSE = "OPERATIONS ACKNOWLEDGED. GENERATING STRUCTURAL BLUEPRINTS FOR YOUR MULTIMEDIA ASSETS. STANDBY FOR FABRICATION COMMENCEMENT.";
+const MOCK_IMAGE_URL = "https://picsum.photos/seed/industrial/1024/1024";
+const MOCK_VIDEO_URL = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-
+// --- Base64 and Audio Utilities ---
 export function encode(bytes: Uint8Array) {
     let binary = '';
     const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
     return btoa(binary);
 }
 
@@ -54,24 +68,39 @@ export function decode(base64: string) {
     const binaryString = atob(base64);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
     return bytes;
 }
 
 export function createPcmBlob(data: Float32Array) {
     const l = data.length;
     const int16 = new Int16Array(l);
-    for (let i = 0; i < l; i++) int16[i] = data[i] * 32768;
-    return { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
+    for (let i = 0; i < l; i++) {
+      int16[i] = data[i] * 32768;
+    }
+    return {
+      data: encode(new Uint8Array(int16.buffer)),
+      mimeType: 'audio/pcm;rate=16000',
+    };
 }
 
-export async function decodePcmAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
+export async function decodePcmAudioData(
+    data: Uint8Array,
+    ctx: AudioContext,
+    sampleRate: number,
+    numChannels: number,
+): Promise<AudioBuffer> {
     const dataInt16 = new Int16Array(data.buffer);
     const frameCount = dataInt16.length / numChannels;
     const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
     for (let channel = 0; channel < numChannels; channel++) {
       const channelData = buffer.getChannelData(channel);
-      for (let i = 0; i < frameCount; i++) channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+      for (let i = 0; i < frameCount; i++) {
+        channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+      }
     }
     return buffer;
 }
@@ -81,248 +110,320 @@ function bufferToWave(abuffer: AudioBuffer): Blob {
     const length = abuffer.length * numOfChan * 2 + 44;
     const buffer = new ArrayBuffer(length);
     const view = new DataView(buffer);
-    let pos = 0;
-    const setUint32 = (data: number) => { view.setUint32(pos, data, true); pos += 4; };
-    const setUint16 = (data: number) => { view.setUint16(pos, data, true); pos += 2; };
-    setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157); setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
-    setUint32(abuffer.sampleRate); setUint32(abuffer.sampleRate * 2 * numOfChan); setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164); setUint32(length - pos - 4);
     const channels = [];
-    for (let i = 0; i < numOfChan; i++) channels.push(abuffer.getChannelData(i));
+    let i, sample;
     let offset = 0;
+    let pos = 0;
+
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8); 
+    setUint32(0x45564157); // "WAVE"
+    setUint32(0x20746d66); // "fmt " chunk
+    setUint32(16); 
+    setUint16(1); 
+    setUint16(numOfChan);
+    setUint32(abuffer.sampleRate);
+    setUint32(abuffer.sampleRate * 2 * numOfChan); 
+    setUint16(numOfChan * 2); 
+    setUint16(16); 
+    setUint32(0x61746164); 
+    setUint32(length - pos - 4); 
+
+    for (i = 0; i < abuffer.numberOfChannels; i++)
+      channels.push(abuffer.getChannelData(i));
+
     while (pos < length) {
-      for (let i = 0; i < numOfChan; i++) {
-        let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-        view.setInt16(pos, sample, true); pos += 2;
+      for (i = 0; i < numOfChan; i++) {
+        sample = Math.max(-1, Math.min(1, channels[i][offset])); 
+        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; 
+        view.setInt16(pos, sample, true); 
+        pos += 2;
       }
       offset++;
     }
+
     return new Blob([view], { type: "audio/wav" });
+
+    function setUint16(data: number) {
+      view.setUint16(pos, data, true);
+      pos += 2;
+    }
+
+    function setUint32(data: number) {
+      view.setUint32(pos, data, true);
+      pos += 4;
+    }
 }
 
-export const connectLiveSession = (callbacks: { onopen: () => void, onmessage: (message: LiveServerMessage) => void, onerror: (e: ErrorEvent) => void, onclose: (e: CloseEvent) => void }) => {
+// --- Download Utility ---
+export const downloadAsset = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error("Asset export failed:", error);
+    // Fallback for simple link opening if blob fetch fails
+    window.open(url, '_blank');
+  }
+};
+
+// --- Service Functions ---
+
+export const connectLiveSession = (callbacks: {
+    onopen: () => void,
+    onmessage: (message: LiveServerMessage) => void,
+    onerror: (e: ErrorEvent) => void,
+    onclose: (e: CloseEvent) => void,
+}) => {
     const ai = getAI();
-    if (!ai) throw new Error("!! CRITICAL: Comm_Engine offline. Check API_KEY clearance. !!");
+    if (!ai) {
+      throw new Error("!! CRITICAL: Comm_Engine offline. Check API_KEY clearance. !!");
+    }
     return ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
-        callbacks,
+        callbacks: callbacks,
         config: {
-          responseModalities: [Modality.AUDIO],
+          responseModalalities: [Modality.AUDIO],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-          systemInstruction: "You are the IRON-CORE interface. Be helpful and clear, with an industrial and direct tone.",
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+          },
+          safetySettings: safetySettings,
         },
     });
 };
 
 export const generateChatResponse = async (prompt: string): Promise<string> => {
   const ai = getAI();
-  if (!ai) return "IRON-CORE INTERFACE OFFLINE.";
+  if (!ai) {
+    await mockWait(1000);
+    return MOCK_CHAT_RESPONSE;
+  }
+  
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: sanitizePrompt(prompt),
-      config: {
-        systemInstruction: "You are the IRON-CORE interface. Be helpful and clear, with an industrial and direct tone. Respond with concise, well-formatted markdown.",
-        thinkingConfig: { thinkingBudget: 16384 },
-        tools: [{ googleSearch: {} }],
-      }
+    const chat = ai.chats.create({ 
+        model: 'gemini-3-flash-preview',
+        config: {
+            systemInstruction: "YOU ARE THE IRON MEDIA COMMAND ORCHESTRATOR. RESPOND WITH TECHNICAL PRECISION. ALL OUTPUT MUST BE UPPERCASE INDUSTRIAL DIALECT.",
+            safetySettings: safetySettings,
+        }
     });
-    return response.text || "";
+    const result = await chat.sendMessage({ message: prompt });
+    return result.text || '';
   } catch (error) {
-    console.error("Gemini Service Error:", error);
-    throw error;
+    console.error("Error generating chat response:", error);
+    throw new Error("Failed to get response from Gemini.");
   }
 };
-
-export async function* generateChatStream(prompt: string) {
-  const ai = getAI();
-  if (!ai) {
-    yield { text: "IRON-CORE INTERFACE OFFLINE." };
-    return;
-  }
-  try {
-    const streamResponse = await ai.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
-      contents: sanitizePrompt(prompt),
-      config: {
-        systemInstruction: "You are the IRON-CORE interface. Be helpful and clear, with an industrial and direct tone. Respond with concise, well-formatted markdown.",
-        thinkingConfig: { thinkingBudget: 16384 },
-        tools: [{ googleSearch: {} }],
-      }
-    });
-    for await (const chunk of streamResponse) {
-      yield { 
-        text: chunk.text,
-        groundingChunks: chunk.candidates?.[0]?.groundingMetadata?.groundingChunks || []
-      };
-    }
-  } catch (error) {
-    console.error("Gemini Service Error:", error);
-    throw error;
-  }
-}
 
 export const generateImage = async (prompt: string, negativePrompt: string, aspectRatio: string, model: string, useGoogleSearch: boolean, resolution?: string, seed?: number): Promise<string> => {
   const ai = getAI();
-  if (!ai) return "https://picsum.photos/seed/offline/1024/1024";
+  if (!ai) {
+    await mockWait(2500);
+    return MOCK_IMAGE_URL;
+  }
+
   try {
     const config: any = {
-      imageConfig: { aspectRatio: aspectRatio as any },
-      tools: useGoogleSearch ? [{ google_search: {} }] : undefined,
-    };
-    if (resolution) config.imageConfig.imageSize = resolution as any;
-    if (seed) config.seed = seed;
-    const fullPrompt = sanitizePrompt(prompt) + (negativePrompt ? `\nNegative Prompt: ${negativePrompt}` : "");
-    const response = await ai.models.generateContent({ 
-        model, 
-        contents: { parts: [{ text: fullPrompt }] }, 
-        config
-    });
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-    }
-    throw new Error("Image generation failed to return data.");
-  } catch (error) {
-    console.error("Gemini Service Error:", error);
-    throw error;
-  }
-};
-
-export const editImage = async (prompt: string, sourceImageUrl: string): Promise<string> => {
-  const ai = getAI();
-  if (!ai) throw new Error("IRON-CORE INTERFACE OFFLINE.");
-  try {
-    const imageData = await urlToBase64(sourceImageUrl);
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          { inlineData: { data: imageData.data, mimeType: imageData.mimeType } },
-          { text: `Edit instruction: ${sanitizePrompt(prompt)}. Maintain the original image's style and composition where possible.` }
-        ]
+      imageConfig: {
+        aspectRatio: aspectRatio as "1:1" | "3:4" | "4:3" | "9:16" | "16:9",
       },
-    });
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      tools: useGoogleSearch ? [{ googleSearch: {} }] : undefined,
+      safetySettings: safetySettings,
+    };
+
+    if (resolution) {
+      config.imageConfig.imageSize = resolution as "1K" | "2K" | "4K";
     }
-    throw new Error("Image editing failed.");
+
+    if (seed && !isNaN(seed)) {
+      config.seed = seed;
+    }
+
+    let fullPrompt = STRICT_ADHERENCE_DIRECTIVE + prompt;
+    if (negativePrompt) {
+        fullPrompt += `\n\n---EXCLUSION_PROTOCOL---\nDO NOT RENDER THE FOLLOWING ELEMENTS OR CONCEPTS: ${negativePrompt}`;
+    }
+
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: { parts: [{ text: fullPrompt }] },
+      config: config
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
+    }
+    throw new Error("No image data found in response.");
   } catch (error) {
-    console.error("Gemini Service Error:", error);
-    throw error;
+    console.error("Error generating image:", error);
+    throw new Error("Failed to generate image with Gemini.");
   }
 };
 
 export const generateSpeech = async (text: string, voice: string): Promise<string> => {
     const ai = getAI();
-    if (!ai) throw new Error("IRON-CORE INTERFACE OFFLINE.");
+    if (!ai) {
+      await mockWait(1500);
+      throw new Error("!! ACCESS DENIED: PA_SYSTEM REQUIRES API_KEY CLEARANCE. !!");
+    }
+  
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: sanitizePrompt(text) }] }],
+        contents: [{ parts: [{ text }] }],
         config: {
           responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: voice },
+            },
+          },
+          safetySettings: safetySettings,
         },
       });
+  
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (!base64Audio) throw new Error("No audio data returned.");
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const audioBuffer = await decodePcmAudioData(decode(base64Audio), audioCtx, 24000, 1);
-      const url = URL.createObjectURL(bufferToWave(audioBuffer));
-      audioCtx.close();
-      return url;
+      if (!base64Audio) {
+        throw new Error("No audio data found in the response.");
+      }
+  
+      const audioBytes = decode(base64Audio);
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioBuffer = await decodePcmAudioData(audioBytes, audioContext, 24000, 1);
+      
+      const wavBlob = bufferToWave(audioBuffer);
+      return URL.createObjectURL(wavBlob);
+  
     } catch (error) {
-      console.error("Gemini Service Error:", error);
-      throw error;
+      console.error("Error generating speech:", error);
+      throw new Error("Failed to generate speech with Gemini.");
     }
 };
 
-export const startVideoGeneration = async (prompt: string, aspectRatio: string, resolution: string, model: string, image?: { file?: File, base64?: string }): Promise<any> => {
+export const startVideoGeneration = async (
+  prompt: string,
+  aspectRatio: string,
+  resolution: string,
+  model: string,
+  imageFile?: File
+): Promise<any> => {
   const ai = getAI();
-  if (!ai) return { done: false, name: 'mock' };
-  
-  let imagePart;
-  if (image?.file) {
-    const genPart = await fileToGenerativePart(image.file);
-    imagePart = { imageBytes: genPart.inlineData.data, mimeType: genPart.inlineData.mimeType };
-  } else if (image?.base64) {
-    const {data, mimeType} = await urlToBase64(image.base64);
-    imagePart = { imageBytes: data, mimeType: mimeType };
+  if (!ai) {
+    await mockWait(1000);
+    return { done: false, name: 'mock_operation_123' };
   }
+  
+  const imagePart = imageFile ? await fileToGenerativePart(imageFile) : undefined;
 
   try {
-    return await ai.models.generateVideos({
-      model,
-      prompt: sanitizePrompt(prompt),
-      image: imagePart,
-      config: { numberOfVideos: 1, resolution: resolution as any, aspectRatio: aspectRatio as any }
+    const generationPrompt = STRICT_ADHERENCE_DIRECTIVE + prompt;
+    
+    let operation = await ai.models.generateVideos({
+      model: model,
+      prompt: generationPrompt,
+      image: imagePart ? { imageBytes: imagePart.inlineData.data, mimeType: imagePart.inlineData.mimeType } : undefined,
+      config: {
+        numberOfVideos: 1,
+        resolution: resolution as '720p' | '1080p',
+        aspectRatio: aspectRatio as '16:9' | '9:16',
+      }
     });
-  } catch(e) {
-    console.error("Gemini Service Error:", e);
-    throw e;
+    return operation;
+  } catch(error) {
+    console.error("Error starting video generation:", error);
+    throw new Error("Failed to start video generation with Veo.");
   }
 };
 
-export const extendVideoGeneration = async (prompt: string, previousVideo: any, aspectRatio: string): Promise<any> => {
+export const extendVideoGeneration = async (
+  prompt: string,
+  previousVideo: any,
+  aspectRatio: string,
+  resolution: string
+): Promise<any> => {
   const ai = getAI();
-  if (!ai) return { done: false, name: 'mock_ext' };
+  if (!ai) {
+    await mockWait(2000);
+    return { done: false, name: 'mock_operation_ext_' + Date.now() };
+  }
+
   try {
-    return await ai.models.generateVideos({
+    const extensionPrompt = "SYSTEM_DIRECTIVE: EXTEND THE STORYBOARD FLUIDLY. ADHERE TO PREVIOUS FRAME CONTINUITY. DIRECTIVE: " + prompt;
+    let operation = await ai.models.generateVideos({
       model: 'veo-3.1-generate-preview',
-      prompt: "Extend the video with this new scene: " + sanitizePrompt(prompt),
+      prompt: extensionPrompt,
       video: previousVideo,
-      config: { numberOfVideos: 1, resolution: '720p', aspectRatio: aspectRatio as any }
+      config: {
+        numberOfVideos: 1,
+        resolution: '720p', // Extension requires 720p
+        aspectRatio: aspectRatio as '16:9' | '9:16',
+      }
     });
-  } catch (e) {
-    console.error("Gemini Service Error:", e);
-    throw e;
+    return operation;
+  } catch (error) {
+    console.error("Error extending video generation:", error);
+    throw new Error("Failed to extend video generation with Veo.");
   }
 };
 
 export const checkVideoOperationStatus = async (operation: any): Promise<any> => {
     const ai = getAI();
-    if (!ai) return { done: Math.random() > 0.8 };
-    return await ai.operations.getVideosOperation({ operation });
+    if (!ai) {
+        await mockWait(8000); 
+        const isDone = Math.random() > 0.4;
+        if (isDone) {
+            return { 
+                done: true, 
+                response: { 
+                    generatedVideos: [{ video: { uri: MOCK_VIDEO_URL } }] 
+                } 
+            };
+        }
+        return { done: false, name: operation.name };
+    }
+
+    try {
+        return await ai.operations.getVideosOperation({ operation: operation });
+    } catch(error) {
+        console.error("Error checking video operation status:", error);
+        throw new Error("Failed to check video status.");
+    }
 };
 
 export const fetchVideoResult = async (downloadLink: string): Promise<string> => {
-    const response = await fetch(downloadLink);
-    if (!response.ok) throw new Error("Failed to download video asset.");
-    return URL.createObjectURL(await response.blob());
-};
+    const apiKey = process.env.API_KEY;
+    if(!apiKey) {
+        return downloadLink;
+    }
+    try {
+        const response = await fetch(`${downloadLink}&key=${apiKey}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch video: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    } catch (error) {
+        console.error("Error fetching video result:", error);
+        throw new Error("Could not download the generated video.");
+    }
+}
 
-export const generateTheme = async (prompt: string): Promise<any> => {
-  const ai = getAI();
-  if (!ai) throw new Error("IRON-CORE INTERFACE OFFLINE.");
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: `Generate a color scheme for a futuristic UI based on this prompt: "${prompt}". Return ONLY a valid JSON object with the specified schema. The colors should be aesthetically pleasing and accessible.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING, description: 'A cool name for the theme.' },
-            indigo: { type: Type.STRING, description: 'A very dark color, almost black, for the main background. Hex format.' },
-            slate: { type: Type.STRING, description: 'A dark color for panel backgrounds. Hex format.' },
-            mauve: { type: Type.STRING, description: 'A mid-tone color for borders and secondary elements. Hex format.' },
-            violet: { type: Type.STRING, description: 'A bright, vibrant primary accent color for highlights and glows. Hex format.' },
-            cyan: { type: Type.STRING, description: 'A bright secondary accent color. Hex format.' },
-            light: { type: Type.STRING, description: 'A light color for primary text. Hex format.' },
-            gray: { type: Type.STRING, description: 'A muted color for secondary text. Hex format.' },
-          },
-        },
-      },
-    });
-    
-    let jsonStr = response.text?.trim() || '{}';
-    return JSON.parse(jsonStr);
-  } catch (error) {
-    console.error("Gemini Theme Generation Error:", error);
-    throw error;
-  }
+export const upscaleVideo = async (videoUrl: string, strength: string): Promise<string> => {
+    console.log(`Initiating upscale process for asset at ${videoUrl} with strength ${strength}`);
+    await mockWait(5000); // Simulate API call for upscaling
+    console.log("Upscaling complete.");
+    // In a real scenario, this would return a new URL. For this mock, we return the original.
+    return videoUrl;
 };

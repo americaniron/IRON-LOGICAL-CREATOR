@@ -1,7 +1,4 @@
-
 import React, { useState } from 'react';
-import Button from './Button';
-import Input from './Input';
 import { XIcon } from './Icons';
 
 interface GrokKeyPromptProps {
@@ -19,34 +16,30 @@ const GrokKeyPrompt: React.FC<GrokKeyPromptProps> = ({ onKeySubmit }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-fuchsia-900/20 border-l-8 border-grok-magenta p-6 relative overflow-hidden group" role="alert">
-      <div className="space-y-4">
-        <div>
-          <strong className="font-mono text-grok-magenta uppercase tracking-[0.2em] block mb-2 flex items-center gap-2">
-            <XIcon className="h-5 w-5" /> X-CORP SYSTEM AUTH
-          </strong>
-          <p className="text-sm text-gray-300 font-mono">
-            This module requires an X-Corp (Grok) API key. It's stored locally. Obviously.
-          </p>
-        </div>
-        <Input
-          label="GROK_API_KEY"
-          id="grok_key"
+    <form onSubmit={handleSubmit} className="bg-[#0A0B0C] border-2 border-grok-magenta/30 p-8 relative shadow-[0_0_30px_rgba(217,70,239,0.2)] animate-in fade-in zoom-in-95 duration-500">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-grok-magenta/50"></div>
+      <div className="text-center mb-8">
+        <XIcon className="h-12 w-12 mx-auto text-grok-magenta mb-4" />
+        <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2 font-['Black_Ops_One']">X-CORP CONDUIT LOCKED</h3>
+        <p className="font-mono text-xs text-gray-500 uppercase tracking-wider">
+          Authorization required to interface with Grok systems.
+        </p>
+      </div>
+      <div className="flex flex-col gap-4">
+        <input
           type="password"
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          placeholder="grok_..."
-          required
+          placeholder="ENTER_API_KEY_ //"
+          className="w-full px-4 py-3 bg-black border-2 border-[#333840] text-grok-magenta focus:outline-none focus:border-grok-magenta font-mono transition-colors text-sm"
         />
-        <div className="flex flex-col sm:flex-row gap-4 pt-2 items-center">
-          <Button type="submit" className="text-xs !py-3 !px-6 !bg-grok-magenta !border-t-fuchsia-300 !shadow-[0_4px_0_#86198f] hover:!shadow-[0_4px_0_#a21caf] !text-white !active:translate-y-[4px]">
-            Engage System
-          </Button>
-          <a href="https://x.ai" target="_blank" rel="noopener noreferrer" className="flex items-center text-[10px] font-mono uppercase text-gray-500 hover:text-grok-magenta underline transition-colors">
-            Get_An_API_Key_Or_Whatever
-          </a>
-        </div>
+        <button type="submit" className="w-full py-3 bg-grok-magenta text-black font-['Black_Ops_One'] uppercase tracking-widest text-lg hover:bg-white transition-colors disabled:bg-gray-700 disabled:text-gray-500">
+          Authorize
+        </button>
       </div>
+       <p className="text-center text-[10px] text-gray-700 font-mono mt-8">
+          Key is stored locally. Find yours on <a href="https://x.ai" target="_blank" rel="noopener noreferrer" className="underline hover:text-grok-magenta">x.ai</a>. Or don't. See if I care.
+       </p>
     </form>
   );
 };

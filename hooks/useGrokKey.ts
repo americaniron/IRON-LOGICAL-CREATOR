@@ -1,24 +1,44 @@
-import { useState, useCallback, useContext } from 'react';
-import { AuthContext } from '../contexts/AuthProvider';
+
+import { useState, useCallback, useEffect } from 'react';
+
+const API_KEY_STORAGE_KEY = 'grok_api_key';
 
 export const useGrokKey = () => {
-  const { keys, updateKeys } = useContext(AuthContext);
-  const [error, setError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    try {
+        const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (storedKey) {
+            setApiKey(storedKey);
+        }
+    } catch (e) {
+        console.error("Could not access local storage:", e);
+    } finally {
+        setIsReady(true);
+    }
+  }, []);
 
   const saveApiKey = useCallback((key: string) => {
-    const trimmed = key.trim();
-    if (trimmed && trimmed.length < 20) {
-      setError('INVALID_FORMAT: GROK_CONDUIT_TOKEN_TOO_SHORT');
-      return;
+    if (key) {
+        try {
+            localStorage.setItem(API_KEY_STORAGE_KEY, key);
+            setApiKey(key);
+        } catch (e) {
+            console.error("Could not save to local storage:", e);
+        }
     }
-    setError(null);
-    updateKeys(undefined, trimmed || null);
-  }, [updateKeys]);
+  }, []);
 
   const clearApiKey = useCallback(() => {
-    updateKeys(undefined, null);
-  }, [updateKeys]);
+    try {
+        localStorage.removeItem(API_KEY_STORAGE_KEY);
+        setApiKey(null);
+    } catch (e) {
+        console.error("Could not clear local storage:", e);
+    }
+  }, []);
   
-  // Return isReady: true as the keys are initialized synchronously from session storage in App context.
-  return { apiKey: keys.grok, error, saveApiKey, clearApiKey, isReady: true };
+  return { apiKey, isReady, saveApiKey, clearApiKey };
 };

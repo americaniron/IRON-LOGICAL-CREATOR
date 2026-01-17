@@ -1,49 +1,37 @@
-import React, { useState, useCallback, useEffect, useContext } from 'react';
-import { generateImage } from '../services/geminiService';
-import { ImageResult, Task } from '../types';
-import { useApiKeySelection } from '../hooks/useApiKeySelection';
-import { AssetContext } from '../contexts/AssetProvider';
-import { SystemStatusContext } from '../contexts/SystemStatusProvider';
-import { usePersistentState } from '../hooks/usePersistentState';
+import React, { useState, useCallback, useEffect } from 'react';
+import { generateImage, downloadAsset } from '../services/geminiService';
+import { ImageResult } from '../types';
+import { useApiKeyManager } from '../hooks/useApiKeyManager';
+import { useMountedState } from '../hooks/useMountedState';
+import { useAppContext } from '../context/AppContext';
 import Button from './common/Button';
 import Input from './common/Input';
 import Select from './common/Select';
 import Spinner from './common/Spinner';
-import ApiKeyPrompt from './common/ApiKeyPrompt';
-import WorkbenchHeader from './common/WorkbenchHeader';
-import { Gear, Film, Image } from './common/Icons';
+import ProviderKeyPrompt from './common/ProviderKeyPrompt';
+import { Gear, Image, Download } from './common/Icons';
 
 const aspectRatios = ["1:1", "16:9", "9:16", "4:3", "3:4"];
 const models = ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"];
 const resolutions = ["1K", "2K", "4K"];
 
 const ImagePanel: React.FC = () => {
-  const { addAsset, pipedPrompt, setPipe } = useContext(AssetContext);
-  const { notify } = useContext(SystemStatusContext);
+  const [prompt, setPrompt] = useMountedState('');
+  const [negativePrompt, setNegativePrompt] = useMountedState('');
+  const [aspectRatio, setAspectRatio] = useMountedState('1:1');
+  const [model, setModel] = useMountedState('gemini-2.5-flash-image');
+  const [resolution, setResolution] = useMountedState('1K');
+  const [seed, setSeed] = useMountedState('');
+  const [useGoogleSearch, setUseGoogleSearch] = useMountedState(false);
+  const [isLoading, setIsLoading] = useMountedState(false);
+  const [error, setError] = useMountedState<string | null>(null);
+  const [result, setResult] = useMountedState<ImageResult | null>(null);
+  const [showProMods, setShowProMods] = useMountedState(false);
 
-  const [prompt, setPrompt] = usePersistentState('image_prompt', '');
-  const [negativePrompt, setNegativePrompt] = usePersistentState('image_neg_prompt', '');
-  const [aspectRatio, setAspectRatio] = usePersistentState('image_aspect', '1:1');
-  const [model, setModel] = usePersistentState('image_model', 'gemini-2.5-flash-image');
-  const [resolution, setResolution] = usePersistentState('image_res', '1K');
-  const [seed, setSeed] = usePersistentState('image_seed', '');
-  const [useGoogleSearch, setUseGoogleSearch] = usePersistentState('image_search', false);
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ImageResult | null>(null);
-  const [showProMods, setShowProMods] = useState(false);
-
-  const { isKeySelected, isChecking, selectKey, resetKeySelection } = useApiKeySelection();
+  const { addAsset } = useAppContext();
+  const { isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('gemini_pro');
 
   const isProModel = model === 'gemini-3-pro-image-preview';
-
-  useEffect(() => {
-    if (pipedPrompt) {
-      setPrompt(pipedPrompt);
-      setPipe('', null, null); 
-    }
-  }, [pipedPrompt, setPipe, setPrompt]);
 
   useEffect(() => {
     if (!isProModel) {
@@ -51,19 +39,18 @@ const ImagePanel: React.FC = () => {
       setResolution('1K');
       setShowProMods(false);
     }
-  }, [isProModel, setUseGoogleSearch, setResolution]);
+  }, [isProModel, setUseGoogleSearch, setResolution, setShowProMods]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) {
-      setError('Prompt cannot be empty.');
+      setError('SYSTEM ERROR: NULL_PROMPT_DATA.');
       return;
     }
 
     setIsLoading(true);
     setError(null);
     setResult(null);
-    notify("Image synthesis initiated", "info");
 
     try {
       const seedValue = seed ? parseInt(seed, 10) : undefined;
@@ -76,158 +63,154 @@ const ImagePanel: React.FC = () => {
         isProModel ? resolution : undefined,
         seedValue
       );
-      
-      const newResult = { url: imageUrl, prompt: prompt };
-      setResult(newResult);
+      setResult({ url: imageUrl, prompt: prompt });
       addAsset({
-        type: 'image',
+        id: `gemini-img-${Date.now()}`,
         url: imageUrl,
+        type: 'image',
         prompt: prompt,
-        provider: 'iron'
+        provider: 'Gemini',
+        timestamp: Date.now(),
       });
     } catch (err) {
-      if (err instanceof Error && (err.message.includes('Requested entity was not found'))) {
-        resetKeySelection();
-        setError('Access Denied: Paid API Key required for this model.');
+      if (err instanceof Error && (err.message.includes('PERMISSION_DENIED') || err.message.includes('403') || err.message.includes('Requested entity was not found'))) {
+        resetKey();
+        setError('ACCESS DENIED: AUTHORIZE_PAID_KEY_REQUIRED.');
       } else {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+        setError(err instanceof Error ? err.message.toUpperCase() : 'UNKNOWN_ENGINE_FAILURE.');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [prompt, negativePrompt, aspectRatio, model, isProModel, useGoogleSearch, resolution, seed, resetKeySelection, addAsset, notify]);
-  
-  const pipeToTask = (res: ImageResult, task: Task) => {
-    setPipe(res.prompt, res.url);
-    window.location.hash = `#/${task}`;
-    notify(`Asset piped to ${task} module`, "info");
+  }, [prompt, negativePrompt, aspectRatio, model, isProModel, useGoogleSearch, resolution, seed, resetKey, setError, setIsLoading, setResult, addAsset]);
+
+  const handleDownload = () => {
+    if (result) {
+      downloadAsset(result.url, `gemini-fab-${Date.now()}.png`);
+    }
   };
 
   return (
-    <div className="flex flex-col xl:flex-row gap-6 md:gap-8 w-full h-full">
-      <div className="control-panel p-4 md:p-8 flex flex-col h-full overflow-y-auto scrollbar-thin order-2 xl:order-1 xl:w-1/2">
-        <WorkbenchHeader title="Image Synthesis" station="Module_01" piped={!!pipedPrompt} />
+    <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 w-full h-full">
+      <div className="control-panel p-4 sm:p-8 flex flex-col h-full overflow-y-auto scrollbar-thin">
+        <div className="flex justify-between items-end mb-6 sm:mb-8 pb-4 border-b-2 border-industrial-gray">
+          <div>
+              <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
+                Fab_Shop
+              </h3>
+              <p className="text-[10px] font-mono text-cyan-400 tracking-[0.4em] uppercase font-bold">UNIT_01 // ONLINE</p>
+          </div>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-          {isProModel && !isChecking && !isKeySelected && (
-            <ApiKeyPrompt modelName="Gemini Pro Vision" onSelectKey={selectKey} />
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          {isProModel && isReady && isKeyRequired && (
+            <ProviderKeyPrompt provider="gemini_pro" onKeySubmit={saveKey} />
           )}
           <Input
-            label="Prompt"
+            label="SITE_PROMPT"
             id="prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="A futuristic cityscape at dusk..."
+            placeholder="A FUTURISTIC SKYSCRAPER..."
             required
-            autoComplete="off"
           />
           <Input
-            label="Negative Prompt"
+            label="NEGATIVE_DATA"
             id="negative_prompt"
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
-            placeholder="blurry, low quality..."
-            autoComplete="off"
+            placeholder="LOW_QUALITY..."
           />
-          <div className="grid grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <Select
-              label="Aspect Ratio"
+              label="RATIO"
               id="aspect_ratio"
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
               options={aspectRatios.map(r => ({ value: r, label: r }))}
             />
             <Select
-              label="Model"
+              label="MODEL"
               id="model"
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              options={models.map(m => ({ value: m, label: m.replace('gemini-', '').replace('-image', '').replace('2.5', '2.5 Lite') }))}
+              options={models.map(m => ({ value: m, label: m.toUpperCase().replace('GEMINI-', '').replace('-IMAGE', '').replace('2.5', 'LITE') }))}
             />
           </div>
 
           {isProModel && (
-            <div className="bg-asphalt/50 border-2 border-industrial-gray">
+            <div className="bg-black/40 border-2 border-industrial-gray">
               <button
                 type="button"
                 onClick={() => setShowProMods(!showProMods)}
-                className="w-full p-3 md:p-4 flex justify-between items-center hover:bg-industrial-gray/20"
-                disabled={!isKeySelected}
+                className="w-full p-3 flex justify-between items-center bg-industrial-gray/50 hover:bg-industrial-gray/80"
+                disabled={isKeyRequired}
               >
                 <div className="flex items-center gap-3">
-                  <Gear className={`h-5 w-5 transition-transform ${showProMods ? 'rotate-90' : ''}`} />
-                  <span className="font-heading uppercase tracking-widest text-sm md:text-base text-text-light">Advanced Options</span>
+                  <Gear className={`h-4 w-4 transition-transform ${showProMods ? 'rotate-90' : ''}`} />
+                  <span className="font-mono uppercase tracking-widest text-[10px] sm:text-xs font-bold">Engine_Modifications</span>
                 </div>
-                <span className="text-heavy-yellow font-body text-xs">{showProMods ? 'Collapse' : 'Expand'}</span>
+                <span className="text-cyan-400 font-mono text-[10px]">{showProMods ? 'COLLAPSE' : 'EXPAND'}</span>
               </button>
               {showProMods && (
-                <div className="p-4 md:p-6 space-y-4 md:space-y-6 animate-in fade-in-0 duration-300">
+                <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-300">
                   <Select
-                    label="Resolution"
+                    label="SCALE"
                     id="resolution"
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                     options={resolutions.map(r => ({ value: r, label: r }))}
                   />
-                  <Input
-                    label="Seed"
-                    id="seed"
-                    type="number"
-                    value={seed}
-                    onChange={(e) => setSeed(e.target.value)}
-                    placeholder="Random"
-                  />
-                  <div className="flex items-center space-x-3 bg-asphalt p-3 border-2 border-industrial-gray">
+                  <div className="flex items-center space-x-3 bg-asphalt/50 p-3 border border-industrial-gray">
                       <input
                           type="checkbox"
                           id="google_search"
                           checked={useGoogleSearch}
                           onChange={(e) => setUseGoogleSearch(e.target.checked)}
-                          className="h-5 w-5 border-2 border-heavy-yellow bg-steel text-heavy-yellow focus:ring-0 cursor-pointer"
+                          className="h-4 w-4 rounded-none border-2 border-cyan-400 bg-asphalt text-cyan-400 focus:ring-0 cursor-pointer"
                       />
-                      <label htmlFor="google_search" className="font-body text-sm text-heavy-yellow uppercase tracking-wider cursor-pointer">
-                          Enable Search Grounding
+                      <label htmlFor="google_search" className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider cursor-pointer">
+                          REAL_TIME_GROUNDING
                       </label>
                   </div>
                 </div>
               )}
             </div>
           )}
-          <Button type="submit" size="xl" disabled={isLoading || (isProModel && !isKeySelected)} className="w-full">
-            {isLoading ? 'Synthesizing...' : 'Generate Image'}
+          <Button type="submit" disabled={isLoading || (isProModel && isKeyRequired)} className="w-full !py-4 sm:!py-6">
+            {isLoading ? 'FABRICATING...' : 'EXECUTE'}
           </Button>
         </form>
       </div>
-       <div className="monitor-screen flex flex-col items-center justify-center h-full relative overflow-hidden p-4 md:p-6 min-h-[300px] order-1 xl:order-2 xl:w-1/2 blueprint-grid">
-         <div className="absolute top-4 left-6 text-xs font-body text-heavy-yellow tracking-widest uppercase font-bold animate-pulse z-20">
-            // Synthesis Monitor
+       <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
+         <div className="absolute top-2 left-4 text-[10px] font-mono text-cyan-400 tracking-widest uppercase font-bold animate-pulse">
+            // FAB_MONITOR_01
         </div>
         
-        {isLoading && <Spinner text="Processing..." />}
-        {error && <p className="text-red-400 font-body text-center border border-red-500/50 p-4 md:p-8 bg-red-500/10 uppercase text-xs md:text-sm">{error}</p>}
+        {isLoading && <Spinner text="CONSTRUCTING PIXELS..." />}
+        {error && <p className="text-red-500 font-mono font-bold text-center border-2 border-red-500 p-6 bg-red-500/10 uppercase tracking-widest text-xs">{error}</p>}
         {result && !isLoading && (
-          <div className="text-center w-full flex flex-col justify-center items-center space-y-4 md:space-y-6 animate-in fade-in-0 zoom-in-95 duration-500">
-            <div className="p-2 bg-asphalt border-2 border-black shadow-2xl relative">
-               <img src={result.url} alt={result.prompt} className="max-w-full max-h-[40vh] md:max-h-[50vh] xl:max-h-full mx-auto object-contain" />
+          <div className="text-center w-full space-y-4 sm:space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="relative p-1 bg-industrial-gray border-b-4 sm:border-b-8 border-black shadow-2xl">
+              <img src={result.url} alt={result.prompt} className="max-w-full max-h-[40vh] sm:max-h-[60vh] lg:max-h-[500px] mx-auto object-contain" />
+              <button 
+                onClick={handleDownload}
+                className="absolute bottom-2 right-2 p-2 bg-cyan-400 text-black hover:bg-white shadow-lg border border-black transition-colors"
+                title="Download Asset"
+              >
+                <Download className="h-5 w-5" />
+              </button>
             </div>
-            <div className="bg-steel/80 p-3 border-2 border-industrial-gray shadow-xl w-full max-w-lg">
-                <div className="grid grid-cols-2 gap-2">
-                    <Button onClick={() => pipeToTask(result, Task.ImageEdit)} variant="secondary" size="sm" className="!gap-1">
-                        <Gear className="h-4 w-4" /> Pipe to Editor
-                    </Button>
-                     <Button onClick={() => pipeToTask(result, Task.ImageToVideo)} variant="secondary" size="sm" className="!gap-1">
-                        <Film className="h-4 w-4" /> Pipe to Video
-                    </Button>
-                </div>
+            <div className="bg-black/80 p-3 border border-industrial-gray">
+               <p className="text-[8px] text-gray-500 font-mono uppercase tracking-[0.3em] mb-1">Manifest_Log</p>
+               <p className="text-[10px] sm:text-xs text-cyan-400 font-mono italic uppercase line-clamp-2">"{result.prompt}"</p>
             </div>
           </div>
         )}
         {!isLoading && !error && !result && (
-          <div className="text-center text-industrial-gray font-body uppercase tracking-widest scale-75 md:scale-100">
-            <div className="mb-4 md:mb-8 text-4xl">
-              <Image className="mx-auto h-16 w-16 md:h-24 md:w-24 opacity-20" />
-            </div>
-            <p className="text-lg font-heading opacity-60 tracking-widest">Display Idle</p>
+          <div className="text-center text-gray-800 font-mono uppercase tracking-widest opacity-50">
+            <Image className="mx-auto h-12 w-12 sm:h-20 sm:w-20 mb-4" />
+            <p className="text-xs">ASSET_BAY_IDLE</p>
           </div>
         )}
       </div>

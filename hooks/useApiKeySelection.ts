@@ -1,5 +1,7 @@
+
 import { useState, useEffect, useCallback } from 'react';
 
+// Define the AIStudio interface to match the environment's expectations
 declare global {
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;
@@ -16,8 +18,10 @@ export const useApiKeySelection = () => {
   const [isChecking, setIsChecking] = useState(true);
 
   const checkApiKey = useCallback(async () => {
+    // If aistudio is not available, we can assume we're in a dev environment
+    // where the key is provided via other means, so we default to true.
     if (!window.aistudio) {
-        setIsKeySelected(true); // Assume key is present in non-aistudio env
+        setIsKeySelected(true);
         setIsChecking(false);
         return;
     }
@@ -28,6 +32,7 @@ export const useApiKeySelection = () => {
         setIsKeySelected(hasKey);
     } catch (e) {
         console.error("Error checking for API key:", e);
+        // Default to false on error
         setIsKeySelected(false);
     } finally {
         setIsChecking(false);
@@ -41,8 +46,9 @@ export const useApiKeySelection = () => {
   const selectKey = useCallback(async () => {
     if (window.aistudio) {
       await window.aistudio.openSelectKey();
-      // Assume success and update UI immediately to avoid race condition
-      setIsKeySelected(true); 
+      // Optimistically set to true to avoid race conditions.
+      // If the key is invalid, the API call will fail and we'll reset.
+      setIsKeySelected(true);
     }
   }, []);
 

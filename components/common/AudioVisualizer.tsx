@@ -1,18 +1,16 @@
 
-import React, { useRef, useEffect, useContext } from 'react';
-import { ConfigContext } from '../../contexts/ConfigProvider';
+import React, { useRef, useEffect } from 'react';
 
 interface AudioVisualizerProps {
   stream: MediaStream;
 }
 
 const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream }) => {
-  const { safeMode } = useContext(ConfigContext);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameId = useRef<number | null>(null);
+  const animationFrameId = useRef<number | undefined>();
 
   useEffect(() => {
-    if (!stream || !canvasRef.current || safeMode) return;
+    if (!stream || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -74,9 +72,9 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream }) => {
       analyser.disconnect();
       audioContext.close();
     };
-  }, [stream, safeMode]);
+  }, [stream]);
 
-  return <canvas ref={canvasRef} className={`w-full max-w-[300px] h-[50px] bg-asphalt border-2 border-industrial-gray ${safeMode ? 'opacity-20' : ''}`} />;
+  return <canvas ref={canvasRef} className="w-full max-w-[300px] h-[50px] bg-asphalt border-2 border-industrial-gray" />;
 };
 
 export default AudioVisualizer;
