@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { generateGrokImage } from '../services/grokService';
 import { downloadAsset } from '../services/geminiService';
@@ -9,7 +8,6 @@ import { useAppContext } from '../context/AppContext';
 import { Image, XIcon, Download, Gear } from './common/Icons';
 import ProviderKeyPrompt from './common/ProviderKeyPrompt';
 import Button from './common/Button';
-// Import Spinner component to fix "Cannot find name 'Spinner'" error
 import Spinner from './common/Spinner';
 
 const GrokImagePanel: React.FC = () => {
