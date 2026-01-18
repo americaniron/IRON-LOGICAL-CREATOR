@@ -4,6 +4,7 @@ import { downloadAsset } from '../services/geminiService';
 import { ImageResult } from '../types';
 import { useApiKeyManager } from '../hooks/useApiKeyManager';
 import { useMountedState } from '../hooks/useMountedState';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAppContext } from '../context/AppContext';
 import Button from './common/Button';
 import Input from './common/Input';
@@ -28,9 +29,12 @@ const styles = [
 
 const OpenAIImagePanel: React.FC = () => {
   const [prompt, setPrompt] = useMountedState('');
-  const [model, setModel] = useMountedState<'dall-e-2' | 'dall-e-3'>('dall-e-3');
-  const [quality, setQuality] = useMountedState<'standard' | 'hd'>('standard');
-  const [style, setStyle] = useMountedState<'vivid' | 'natural'>('vivid');
+  
+  // Persisted Preferences
+  const [model, setModel] = useLocalStorage<'dall-e-2' | 'dall-e-3'>('im_pref_oai_img_model', 'dall-e-3');
+  const [quality, setQuality] = useLocalStorage<'standard' | 'hd'>('im_pref_oai_img_quality', 'standard');
+  const [style, setStyle] = useLocalStorage<'vivid' | 'natural'>('im_pref_oai_img_style', 'vivid');
+
   const [isLoading, setIsLoading] = useMountedState(false);
   const [error, setError] = useMountedState<string | null>(null);
   const [result, setResult] = useMountedState<ImageResult | null>(null);

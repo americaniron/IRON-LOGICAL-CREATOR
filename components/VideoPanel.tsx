@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Task } from '../types';
 import { useApiKeyManager } from '../hooks/useApiKeyManager';
 import { useAppContext } from '../context/AppContext';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import Button from './common/Button';
 import Select from './common/Select';
 import Slider from './common/Slider';
@@ -23,16 +24,18 @@ const upscaleStrengths = [{value: '2x', label: '2X RESOLUTION'}, {value: '4x', l
 
 const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
   const [prompt, setPrompt] = useState('');
-  const [duration, setDuration] = useState(15);
-  const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [resolution, setResolution] = useState('720p');
-  const [model, setModel] = useState('veo-3.1-generate-preview');
   const [imageFile, setImageFile] = useState<{ file: File; preview: string } | null>(null);
+  
+  // Persisted Preferences
+  const [duration, setDuration] = useLocalStorage('im_pref_vid_duration', 15);
+  const [aspectRatio, setAspectRatio] = useLocalStorage('im_pref_vid_ar', '16:9');
+  const [resolution, setResolution] = useLocalStorage('im_pref_vid_res', '720p');
+  const [model, setModel] = useLocalStorage('im_pref_vid_model', 'veo-3.1-generate-preview');
+  const [upscaleStrength, setUpscaleStrength] = useLocalStorage('im_pref_vid_upscale', '2x');
   
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
   const [upscaleError, setUpscaleError] = useState<string | null>(null);
-  const [upscaleStrength, setUpscaleStrength] = useState('2x');
 
   const { addAsset } = useAppContext();
   const { isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('gemini_pro');
@@ -58,13 +61,13 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
     if (is1080pInvalid && resolution === '1080p') {
       setResolution('720p');
     }
-  }, [model, duration, resolution]);
+  }, [model, duration, resolution, setResolution]);
 
   useEffect(() => {
     if (duration > maxDuration) {
       setDuration(maxDuration);
     }
-  }, [maxDuration, duration]);
+  }, [maxDuration, duration, setDuration]);
   
   useEffect(() => {
     setUpscaledUrl(null);

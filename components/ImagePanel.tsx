@@ -3,6 +3,7 @@ import { generateImage, downloadAsset } from '../services/geminiService';
 import { ImageResult } from '../types';
 import { useApiKeyManager } from '../hooks/useApiKeyManager';
 import { useMountedState } from '../hooks/useMountedState';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAppContext } from '../context/AppContext';
 import Button from './common/Button';
 import Input from './common/Input';
@@ -18,15 +19,18 @@ const resolutions = ["1K", "2K", "4K"];
 const ImagePanel: React.FC = () => {
   const [prompt, setPrompt] = useMountedState('');
   const [negativePrompt, setNegativePrompt] = useMountedState('');
-  const [aspectRatio, setAspectRatio] = useMountedState('1:1');
-  const [model, setModel] = useMountedState('gemini-2.5-flash-image');
-  const [resolution, setResolution] = useMountedState('1K');
+  
+  // Persisted Preferences
+  const [aspectRatio, setAspectRatio] = useLocalStorage('im_pref_img_ar', '1:1');
+  const [model, setModel] = useLocalStorage('im_pref_img_model', 'gemini-2.5-flash-image');
+  const [resolution, setResolution] = useLocalStorage('im_pref_img_res', '1K');
+  const [useGoogleSearch, setUseGoogleSearch] = useLocalStorage('im_pref_img_search', false);
+  const [showProMods, setShowProMods] = useLocalStorage('im_pref_img_promods', false);
   const [seed, setSeed] = useMountedState('');
-  const [useGoogleSearch, setUseGoogleSearch] = useMountedState(false);
+
   const [isLoading, setIsLoading] = useMountedState(false);
   const [error, setError] = useMountedState<string | null>(null);
   const [result, setResult] = useMountedState<ImageResult | null>(null);
-  const [showProMods, setShowProMods] = useMountedState(false);
 
   const { addAsset } = useAppContext();
   const { isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('gemini_pro');

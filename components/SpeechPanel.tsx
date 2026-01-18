@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { generateSpeech } from '../services/geminiService';
 import { AudioResult } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import Button from './common/Button';
 import Select from './common/Select';
 import Spinner from './common/Spinner';
@@ -11,7 +12,10 @@ const voices = ["Kore", "Puck", "Charon", "Fenrir", "Zephyr"];
 
 const SpeechPanel: React.FC = () => {
   const [text, setText] = useState('');
-  const [voice, setVoice] = useState('Zephyr');
+  
+  // Persisted Preference
+  const [voice, setVoice] = useLocalStorage('im_pref_tts_voice', 'Zephyr');
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AudioResult | null>(null);

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { generateOpenAIVideo, upscaleOpenAIVideo } from '../services/openAIService';
 import { useApiKeyManager } from '../hooks/useApiKeyManager';
 import { useMountedState } from '../hooks/useMountedState';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAppContext } from '../context/AppContext';
 import { downloadAsset } from '../services/geminiService';
 import Button from './common/Button';
@@ -23,7 +24,9 @@ const OpenAIVideoPanel: React.FC = () => {
   const [isUpscaling, setIsUpscaling] = useMountedState(false);
   const [upscaledUrl, setUpscaledUrl] = useMountedState<string | null>(null);
   const [upscaleError, setUpscaleError] = useMountedState<string | null>(null);
-  const [upscaleStrength, setUpscaleStrength] = useMountedState('2x');
+  
+  // Persisted Preference
+  const [upscaleStrength, setUpscaleStrength] = useLocalStorage('im_pref_oai_vid_upscale', '2x');
 
   const { addAsset } = useAppContext();
   const { apiKey, isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('openai');
