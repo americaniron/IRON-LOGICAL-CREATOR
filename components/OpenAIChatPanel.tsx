@@ -61,19 +61,19 @@ const OpenAIChatPanel: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full max-w-5xl mx-auto control-panel p-6 border-2 border-guest-green/20">
-       <div className="flex-1 overflow-y-auto pr-4 space-y-8 pb-4 scrollbar-thin scrollbar-thumb-guest-green">
+    <div className="flex flex-col h-full max-w-5xl mx-auto control-panel p-6">
+       <div className="flex-1 overflow-y-auto pr-4 space-y-8 pb-4 scrollbar-thin">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex items-start gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
             {msg.sender === 'bot' && (
-              <div className="p-3 bg-guest-green border-2 border-black rounded-sm shadow-lg">
+              <div className="p-3 bg-heavy-yellow border-2 border-black rounded-sm shadow-lg">
                 <BrainCircuit className="h-6 w-6 text-black" />
               </div>
             )}
             <div className={`relative max-w-lg p-5 border-2 ${
               msg.sender === 'user' 
-                ? 'bg-industrial-gray border-guest-green text-white' 
-                : 'bg-asphalt border-industrial-gray text-guest-green font-mono'
+                ? 'bg-industrial-gray border-heavy-yellow text-white' 
+                : 'bg-asphalt border-industrial-gray text-heavy-yellow font-mono'
             }`}>
               <div className="rivet absolute -top-1.5 -left-1.5"></div>
               <div className="rivet absolute -bottom-1.5 -right-1.5"></div>
@@ -89,7 +89,7 @@ const OpenAIChatPanel: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
       <div className="mt-8 pt-6 border-t-4 border-industrial-gray">
-        <div className="flex items-center bg-asphalt border-2 border-industrial-gray p-1 focus-within:border-guest-green transition-colors">
+        <div className="flex items-center bg-asphalt border-2 border-industrial-gray p-1 focus-within:border-heavy-yellow transition-colors">
           <input
             type="text"
             value={input}
@@ -102,7 +102,7 @@ const OpenAIChatPanel: React.FC = () => {
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="p-4 bg-guest-green text-black hover:bg-green-300 disabled:bg-gray-800 disabled:text-gray-600 transition-colors"
+            className="p-4 bg-heavy-yellow text-black hover:bg-yellow-300 disabled:bg-gray-800 disabled:text-gray-600 transition-colors"
           >
             <Send className="h-6 w-6" />
           </button>

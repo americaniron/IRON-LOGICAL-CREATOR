@@ -6,20 +6,17 @@ import { Crane, Download, X, Image, Video, BrainCircuit, XIcon } from './common/
 
 const AssetCard: React.FC<{ asset: Asset; onRemove: (id: string) => void }> = ({ asset, onRemove }) => {
     
-    const providerClasses: Record<AssetProvider, string> = {
-        'Gemini': 'from-heavy-yellow/30 to-cyber-cyan/30 border-cyan-400',
-        'OpenAI': 'from-guest-green/30 to-green-800/30 border-guest-green',
-        'Grok': 'from-grok-magenta/30 to-fuchsia-800/30 border-grok-magenta',
-    };
-
-    const providerText: Record<AssetProvider, string> = {
-        'Gemini': 'text-cyan-400',
-        'OpenAI': 'text-guest-green',
-        'Grok': 'text-grok-magenta',
-    };
+    const ProviderIcon: React.FC<{provider: AssetProvider}> = ({provider}) => {
+        switch(provider) {
+            case 'OpenAI': return <BrainCircuit className="h-4 w-4 text-heavy-yellow" />;
+            case 'Grok': return <XIcon className="h-4 w-4 text-heavy-yellow" />;
+            case 'Gemini':
+            default: return <div className="h-3 w-3 bg-heavy-yellow" />;
+        }
+    }
     
     return (
-        <div className={`bg-gradient-to-br ${providerClasses[asset.provider]} border-b-4 border-black group relative overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500`}>
+        <div className={`bg-dark-metal border-b-4 border-black group relative overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500 border-2 border-transparent hover:border-heavy-yellow`}>
             <div className="relative">
                 {asset.type === 'image' ? (
                     <img src={asset.url} alt={asset.prompt} className="w-full h-48 object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
@@ -31,14 +28,17 @@ const AssetCard: React.FC<{ asset: Asset; onRemove: (id: string) => void }> = ({
             <div className="p-4 space-y-3">
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className={`text-xs font-black uppercase tracking-widest ${providerText[asset.provider]}`}>{asset.provider} // {asset.type}</p>
+                        <p className={`text-xs font-black uppercase tracking-widest text-heavy-yellow flex items-center gap-2`}>
+                            <ProviderIcon provider={asset.provider} />
+                            {asset.provider} // {asset.type}
+                        </p>
                         <p className="text-[10px] font-mono text-gray-500">{new Date(asset.timestamp).toLocaleString()}</p>
                     </div>
                     <button onClick={() => onRemove(asset.id)} className="p-1.5 bg-red-800/50 text-red-400 hover:bg-red-600 hover:text-white transition-colors">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
-                <p className="text-xs font-mono text-gray-400 h-16 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700">
+                <p className="text-xs font-mono text-gray-400 h-16 overflow-y-auto pr-2 scrollbar-thin">
                     &gt; {asset.prompt}
                 </p>
             </div>
@@ -91,7 +91,7 @@ const AssetBayPanel: React.FC = () => {
                     <FilterButton value="all" label="All" />
                     <FilterButton value="image" label="Images" icon={<Image className="h-4 w-4" />} />
                     <FilterButton value="video" label="Videos" icon={<Video className="h-4 w-4" />} />
-                    <FilterButton value="Gemini" label="Gemini" icon={<div className="h-3 w-3 bg-cyan-400" />} />
+                    <FilterButton value="Gemini" label="Gemini" icon={<div className="h-3 w-3 bg-current" />} />
                     <FilterButton value="OpenAI" label="OpenAI" icon={<BrainCircuit className="h-4 w-4" />} />
                     <FilterButton value="Grok" label="Grok" icon={<XIcon className="h-4 w-4" />} />
                 </div>

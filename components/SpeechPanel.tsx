@@ -45,12 +45,12 @@ const SpeechPanel: React.FC = () => {
               <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
                 PA_System
               </h3>
-              <p className="text-[10px] font-mono text-cyan-400 tracking-[0.4em] uppercase font-bold">SYNTH_ENGINE_V2 // ONLINE</p>
+              <p className="text-[10px] font-mono text-heavy-yellow tracking-[0.4em] uppercase font-bold">SYNTH_ENGINE_V2 // ONLINE</p>
             </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           <div className="relative">
-            <label htmlFor="tts-text" className="block text-xs font-black uppercase tracking-[0.2em] text-cyan-400 mb-2 font-mono">
+            <label htmlFor="tts-text" className="block text-xs font-black uppercase tracking-[0.2em] text-heavy-yellow mb-2 font-mono">
               &gt; DATA_INPUT
             </label>
             <textarea
@@ -59,7 +59,7 @@ const SpeechPanel: React.FC = () => {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="INPUT BROADCAST MESSAGE..."
-              className="w-full px-4 py-3 bg-[#111317] border-2 border-industrial-gray rounded-none text-white focus:outline-none focus:border-cyan-400 font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-sm uppercase"
+              className="w-full px-4 py-3 bg-asphalt border-2 border-industrial-gray rounded-none text-white focus:outline-none focus:border-heavy-yellow font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-sm uppercase"
               required
             />
           </div>
@@ -71,12 +71,12 @@ const SpeechPanel: React.FC = () => {
             options={voices.map(v => ({ value: v, label: `PATCH_${v.toUpperCase()}` }))}
           />
           <Button type="submit" disabled={isLoading} className="w-full !py-4 sm:!py-6">
-            {isLoading ? 'TRANSMITTING...' : 'START BROADCAST'}
+            {isLoading ? 'TRANSMITTING...' : 'GENERATE AUDIO'}
           </Button>
         </form>
       </div>
       <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
-        <div className="absolute top-2 left-4 text-xs font-mono text-cyan-400 tracking-widest uppercase font-bold animate-pulse">
+        <div className="absolute top-2 left-4 text-xs font-mono text-heavy-yellow tracking-widest uppercase font-bold animate-pulse">
             // AUDIO_MONITOR_01
         </div>
         
@@ -87,7 +87,7 @@ const SpeechPanel: React.FC = () => {
             <CustomAudioPlayer src={result.url} />
             <div className="bg-black/80 p-4 border border-industrial-gray">
                <p className="text-[10px] text-gray-500 font-mono uppercase tracking-[0.3em] mb-2">Transcript_Log</p>
-               <p className="text-xs text-cyan-400 font-mono italic uppercase">"{result.text}"</p>
+               <p className="text-xs text-heavy-yellow font-mono italic uppercase">"{result.text}"</p>
             </div>
           </div>
         )}

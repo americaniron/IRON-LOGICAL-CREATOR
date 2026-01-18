@@ -19,35 +19,34 @@
 </script>
 <style>
   :root {
-    --heavy-yellow: #EBB700;
-    --cyber-cyan: #00BFFF;
-    --guest-green: #4ade80;
-    --grok-magenta: #d946ef;
-    --industrial-gray: #333840;
-    --dark-metal: #1F2328;
-    --asphalt: #111317;
-    --hud-glow: 0 0 5px var(--cyber-cyan), 0 0 10px var(--cyber-cyan), 0 0 15px var(--cyber-cyan);
+    --heavy-yellow: #FFD300; /* Caterpillar Yellow */
+    --light-accent: #FFFFFF;
+    --dark-text: #000000;
+    --industrial-gray: #333333;
+    --dark-metal: #1a1a1a;
+    --asphalt: #0a0a0a;
+    --hud-glow: 0 0 8px var(--heavy-yellow);
   }
   body {
     font-family: 'Inter', sans-serif;
     background-color: var(--asphalt);
     background-image: 
-      linear-gradient(rgba(17, 19, 23, 0.97), rgba(17, 19, 23, 0.97)),
+      linear-gradient(rgba(10, 10, 10, 0.98), rgba(10, 10, 10, 0.98)),
       url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
   }
   .blueprint-grid {
     background-size: 50px 50px;
     background-image:
-      linear-gradient(to right, rgba(0, 191, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(0, 191, 255, 0.05) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255, 211, 0, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 211, 0, 0.05) 1px, transparent 1px);
   }
   .caution-stripes {
     background: repeating-linear-gradient(
       -45deg,
-      rgba(0,0,0,0.5),
-      rgba(0,0,0,0.5) 10px,
-      rgba(235, 183, 0, 0.8) 10px,
-      rgba(235, 183, 0, 0.8) 20px
+      rgba(0,0,0,0.7),
+      rgba(0,0,0,0.7) 10px,
+      var(--heavy-yellow) 10px,
+      var(--heavy-yellow) 20px
     );
   }
   .rivet {
@@ -55,7 +54,7 @@
     height: 6px;
     background: #444;
     border-radius: 50%;
-    box-shadow: inset -1px -1px 2px #111, 1px 1px 2px #777;
+    box-shadow: inset -1px -1px 2px #000, 1px 1px 2px #555;
     border: 1px solid #000;
   }
   .control-panel {
@@ -66,11 +65,11 @@
       0 0 15px rgba(0,0,0,0.5);
   }
   .monitor-screen {
-    background-color: #0A0A0B;
+    background-color: #000;
     border: 4px solid var(--industrial-gray);
     box-shadow: 
         inset 0 0 80px rgba(0,0,0,0.8),
-        0 0 2px var(--cyber-cyan);
+        0 0 2px var(--heavy-yellow);
   }
   .american-iron-font {
     font-family: 'Inter', sans-serif;
@@ -91,19 +90,6 @@
     background-color: var(--heavy-yellow);
     border-radius: 0px;
     border: 2px solid var(--dark-metal);
-  }
-
-  .scrollbar-thumb-guest-green {
-    scrollbar-color: var(--guest-green) var(--dark-metal);
-  }
-  .scrollbar-thumb-guest-green::-webkit-scrollbar-thumb {
-    background-color: var(--guest-green);
-  }
-  .scrollbar-thumb-grok-magenta {
-    scrollbar-color: var(--grok-magenta) var(--dark-metal);
-  }
-  .scrollbar-thumb-grok-magenta::-webkit-scrollbar-thumb {
-    background-color: var(--grok-magenta);
   }
 
   /* Animations for tailwindcss-animate */

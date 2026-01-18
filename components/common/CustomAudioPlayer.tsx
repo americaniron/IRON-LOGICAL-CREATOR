@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause } from './Icons';
 
@@ -74,20 +73,20 @@ const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({ src }) => {
       <audio ref={audioRef} src={src} preload="metadata"></audio>
       <button 
         onClick={togglePlayPause}
-        className="flex-shrink-0 p-3 bg-cyan-400 text-black hover:bg-cyan-300 transition-colors disabled:bg-gray-700"
+        className="flex-shrink-0 p-3 bg-heavy-yellow text-black hover:bg-yellow-300 transition-colors disabled:bg-gray-700"
       >
         {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
       </button>
 
       <div className="flex-grow flex items-center gap-3">
-        <span className="font-mono text-xs text-cyan-400">{formatTime(progress)}</span>
+        <span className="font-mono text-xs text-heavy-yellow">{formatTime(progress)}</span>
         <div 
           ref={progressBarRef}
           onClick={handleProgressClick}
           className="w-full h-3 bg-asphalt border border-industrial-gray cursor-pointer"
         >
           <div 
-            className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300" 
+            className="h-full bg-gradient-to-r from-heavy-yellow to-yellow-500" 
             style={{ width: `${(progress / duration) * 100}%` }}
           ></div>
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 
 interface AudioVisualizerProps {
@@ -36,10 +35,10 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream }) => {
       animationFrameId.current = requestAnimationFrame(draw);
       analyser.getByteTimeDomainData(dataArray);
 
-      canvasCtx.fillStyle = '#111317'; // --asphalt
+      canvasCtx.fillStyle = '#0a0a0a'; // --asphalt
       canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
       canvasCtx.lineWidth = 2;
-      canvasCtx.strokeStyle = '#00BFFF'; // --cyber-cyan
+      canvasCtx.strokeStyle = '#FFD300'; // --heavy-yellow
       canvasCtx.beginPath();
 
       const sliceWidth = (canvas.width * 1.0) / bufferLength;

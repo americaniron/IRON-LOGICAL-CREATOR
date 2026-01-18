@@ -57,11 +57,12 @@ export const useVeo = () => {
       const requiresExtension = params.duration > 8;
       const generationModel = requiresExtension ? 'veo-3.1-generate-preview' : params.model;
       
-      // CRITICAL: Extension logic requires the input video to be 720p.
-      // If extension is required, we force the initial resolution to 720p.
-      const effectiveResolution = requiresExtension ? '720p' : params.resolution;
+      // CRITICAL FIX: Extension logic requires the input video to be 720p.
+      // We force 720p if extension is required OR if the enterprise model is explicitly used, 
+      // as it is the only one that can handle the subsequent extension steps.
+      const effectiveResolution = (requiresExtension || params.model === 'veo-3.1-generate-preview') ? '720p' : params.resolution;
 
-      // 1. Initial Step
+      // 1. Initial Step (Generates the first 8s segment)
       let operation = await startVideoGeneration(
         params.prompt,
         params.aspectRatio,
@@ -83,18 +84,19 @@ export const useVeo = () => {
       let currentVideo = operation.response?.generatedVideos?.[0]?.video;
       let currentDuration = 8; 
 
-      // 2. Extensions
+      // 2. Extension Loop (Adds 7s segments until target duration is reached)
       while (currentDuration < params.duration && requiresExtension) {
         if (!isMounted.current) return;
         if (!currentVideo) throw new Error("SEQUENCE CONTINUITY ERROR.");
 
-        setProgressMessage(`FABRICATING SEGMENT: ${currentDuration}s - ${currentDuration + 7}s...`);
+        setProgressMessage(`FABRICATING SEGMENT: ${currentDuration}s - ${Math.min(currentDuration + 7, params.duration)}s...`);
         
+        // Extensions MUST be 720p and the input video MUST have been 720p.
         operation = await extendVideoGeneration(
           params.prompt,
           currentVideo,
           params.aspectRatio,
-          '720p' // Extensions are always 720p
+          '720p'
         );
 
         while (!operation.done) {

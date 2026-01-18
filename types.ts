@@ -1,3 +1,4 @@
+
 export enum Task {
   Chat = 'chat',
   TextToImage = 't2i',
@@ -12,6 +13,7 @@ export enum Task {
   GrokChat = 'grok_chat',
   GrokTextToImage = 'grok_t2i',
   GrokTextToVideo = 'grok_t2v',
+  AdminPanel = 'admin_panel', // New Task
 }
 
 export interface Message {
@@ -46,4 +48,20 @@ export interface Asset {
   prompt: string;
   provider: AssetProvider;
   timestamp: number;
+}
+
+// New Interfaces for Auth
+export interface AccessRequest {
+    id: string;
+    name: string;
+    reason: string;
+    timestamp: number;
+    status: 'pending' | 'approved' | 'denied';
+    generatedPin?: string;
+}
+
+export interface UserAccount {
+    name: string;
+    pin: string;
+    role: 'admin' | 'user';
 }

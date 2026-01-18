@@ -42,12 +42,23 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
     return model === 'veo-3.1-generate-preview' ? 60 : 15;
   }, [model]);
 
-  // Logic to lock resolution to 720p for long-form content (>8s)
+  const resolutionOptions = useMemo(() => {
+    // Enterprise model or durations > 8s strictly require 720p for the pipeline.
+    if (model === 'veo-3.1-generate-preview' || duration > 8) {
+      return resolutions
+        .filter(r => r === '720p')
+        .map(r => ({ value: r, label: r }));
+    }
+    return resolutions.map(r => ({ value: r, label: r }));
+  }, [model, duration]);
+
+  // Sync resolution state when options change to prevent stale "1080p" values.
   useEffect(() => {
-    if (duration > 8 && resolution === '1080p') {
+    const is1080pInvalid = model === 'veo-3.1-generate-preview' || duration > 8;
+    if (is1080pInvalid && resolution === '1080p') {
       setResolution('720p');
     }
-  }, [duration, resolution]);
+  }, [model, duration, resolution]);
 
   useEffect(() => {
     if (duration > maxDuration) {
@@ -117,7 +128,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
               <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
                 {task === Task.TextToVideo ? 'ASSEMBLY' : 'VFX_RIG'}
               </h3>
-              <p className="text-[10px] font-mono text-cyan-400 tracking-[0.4em] uppercase font-bold">STATION_42 // ONLINE</p>
+              <p className="text-[10px] font-mono text-heavy-yellow tracking-[0.4em] uppercase font-bold">STATION_42 // ONLINE</p>
             </div>
         </div>
         
@@ -135,7 +146,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
           )}
           
           <div className="relative">
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-2 font-mono">
+            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-heavy-yellow mb-2 font-mono">
               &gt; BLUEPRINT_DIRECTIVE
             </label>
             <textarea
@@ -143,7 +154,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="ENTER SCENE SPECIFICATIONS..."
               rows={4}
-              className="w-full px-4 py-3 bg-[#111317] border-2 border-[#333840] text-white focus:outline-none focus:border-cyan-400 font-mono shadow-inner transition-colors text-xs uppercase"
+              className="w-full px-4 py-3 bg-asphalt border-2 border-industrial-gray text-white focus:outline-none focus:border-heavy-yellow font-mono shadow-inner transition-colors text-xs uppercase"
               required={task === Task.TextToVideo}
             />
           </div>
@@ -172,11 +183,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
                 id="resolution"
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
-                options={resolutions.map(r => ({ 
-                    value: r, 
-                    label: r === '1080p' && duration > 8 ? `${r} (8S LIMIT)` : r 
-                }))}
-                disabled={duration > 8}
+                options={resolutionOptions}
             />
           </div>
 
@@ -191,20 +198,20 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
               }))}
             />
 
-          {duration > 8 && (
+          {(duration > 8 || model === 'veo-3.1-generate-preview') && (
             <p className="text-[10px] font-mono text-orange-500 uppercase animate-pulse">
-               // Notice: Long-form fabrication (>8s) requires 720p calibration.
+               // Notice: Enterprise engine or long-form fabrication requires 720p calibration.
             </p>
           )}
 
           <Button type="submit" disabled={isLoading || isKeyRequired} className="w-full !py-4 sm:!py-6">
-            {isLoading ? 'ORCHESTRATING...' : 'INITIALIZE'}
+            {isLoading ? 'ORCHESTRATING...' : 'FABRICATE VIDEO'}
           </Button>
         </form>
       </div>
 
       <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
-        <div className="absolute top-2 left-4 text-[10px] font-mono text-cyan-400 tracking-widest uppercase font-bold animate-pulse">
+        <div className="absolute top-2 left-4 text-[10px] font-mono text-heavy-yellow tracking-widest uppercase font-bold animate-pulse">
             // PROD_MONITOR_01
         </div>
         
@@ -212,7 +219,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
           <div className="text-center">
             <Spinner text={progressMessage.toUpperCase()} />
             {estimatedTimeRemaining !== null && (
-              <p className="mt-4 font-mono text-[10px] text-cyan-400 animate-pulse tracking-widest">
+              <p className="mt-4 font-mono text-[10px] text-heavy-yellow animate-pulse tracking-widest">
                 EST_TIME: {Math.floor(estimatedTimeRemaining / 60)}m {estimatedTimeRemaining % 60}s
               </p>
             )}
@@ -248,7 +255,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
                     <p className="text-[10px] text-white font-mono uppercase tracking-widest font-bold">ASSET_MANIFEST</p>
                     <button
                         onClick={() => downloadAsset(currentVideoUrl, `im-fab-${Date.now()}.mp4`)}
-                        className="flex items-center gap-2 bg-cyan-400 text-black px-3 py-1.5 text-[10px] font-['Black_Ops_One'] uppercase tracking-widest hover:bg-white transition-colors"
+                        className="flex items-center gap-2 bg-heavy-yellow text-black px-3 py-1.5 text-[10px] font-['Black_Ops_One'] uppercase tracking-widest hover:bg-white transition-colors"
                     >
                         <Download className="h-3 w-3" />
                         Export

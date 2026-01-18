@@ -107,7 +107,7 @@ const OpenAIVideoPanel: React.FC = () => {
               <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
                 Sora Synthesizer
               </h3>
-              <p className="text-[10px] font-mono text-guest-green tracking-[0.4em] uppercase font-bold">GUEST_SYSTEM // ONLINE</p>
+              <p className="text-[10px] font-mono text-heavy-yellow tracking-[0.4em] uppercase font-bold">GUEST_SYSTEM // ONLINE</p>
           </div>
         </div>
 
@@ -119,7 +119,7 @@ const OpenAIVideoPanel: React.FC = () => {
             />
 
             <div className="relative group">
-                <label className="block text-xs font-black uppercase tracking-[0.2em] text-guest-green mb-2 font-mono">
+                <label className="block text-xs font-black uppercase tracking-[0.2em] text-heavy-yellow mb-2 font-mono">
                 &gt; CINEMATIC_BLUEPRINT_DIRECTIVE
                 </label>
                 <textarea
@@ -127,19 +127,19 @@ const OpenAIVideoPanel: React.FC = () => {
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="DEFINE SUBJECTS, ACTIONS, AND ENVIRONMENT..."
                 rows={6}
-                className="w-full px-4 py-3 bg-[#111317] border-2 border-[#333840] rounded-none text-white focus:outline-none focus:border-guest-green font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-xs sm:text-sm uppercase tracking-wider"
+                className="w-full px-4 py-3 bg-asphalt border-2 border-industrial-gray rounded-none text-white focus:outline-none focus:border-heavy-yellow font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] transition-colors text-xs sm:text-sm uppercase tracking-wider"
                 required={!imageFile}
                 />
             </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full !py-4 sm:!py-6 !bg-guest-green !border-t-green-300 !shadow-[0_6px_0_#15803d] hover:!shadow-[0_6px_0_#16a34a] !text-black">
-            {isLoading ? 'SYNTHESIZING...' : 'INITIALIZE FABRICATION'}
+          <Button type="submit" disabled={isLoading} className="w-full !py-4 sm:!py-6">
+            {isLoading ? 'SYNTHESIZING...' : 'FABRICATE VIDEO'}
           </Button>
         </form>
       </div>
 
        <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
-         <div className="absolute top-2 left-4 text-[10px] font-mono text-guest-green tracking-widest uppercase font-bold animate-pulse">
+         <div className="absolute top-2 left-4 text-[10px] font-mono text-heavy-yellow tracking-widest uppercase font-bold animate-pulse">
             // SYNTH_MONITOR_03
         </div>
         
@@ -160,7 +160,7 @@ const OpenAIVideoPanel: React.FC = () => {
               />
               <button 
                 onClick={() => downloadAsset(currentVideoUrl, `oai-synth-${Date.now()}.mp4`)}
-                className="absolute top-4 right-4 p-2 bg-guest-green text-black hover:bg-white shadow-lg border border-black transition-colors"
+                className="absolute top-4 right-4 p-2 bg-heavy-yellow text-black hover:bg-white shadow-lg border border-black transition-colors"
                 title="Download Synth Asset"
               >
                 <Download className="h-5 w-5" />
@@ -170,7 +170,7 @@ const OpenAIVideoPanel: React.FC = () => {
             <div className="mt-4 bg-black/80 p-3 sm:p-4 border-2 border-industrial-gray w-full text-left shadow-2xl space-y-4">
                 <div className="border-b border-industrial-gray pb-2">
                   <p className="text-[10px] text-gray-500 font-mono uppercase tracking-[0.3em] mb-1">Manifest_Log</p>
-                  <p className="text-[10px] sm:text-xs text-guest-green font-mono italic uppercase line-clamp-2">"{prompt || 'IMAGE_TO_VIDEO_SYNTHESIS'}"</p>
+                  <p className="text-[10px] sm:text-xs text-heavy-yellow font-mono italic uppercase line-clamp-2">"{prompt || 'IMAGE_TO_VIDEO_SYNTHESIS'}"</p>
                 </div>
                 <div className="bg-asphalt/50 border border-industrial-gray p-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">

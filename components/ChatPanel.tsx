@@ -64,7 +64,7 @@ const ChatPanel: React.FC = () => {
        <div className="absolute top-4 right-6 z-20">
           <button 
             onClick={handleExport}
-            className="p-2 bg-industrial-gray border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all group"
+            className="p-2 bg-industrial-gray border border-heavy-yellow/30 text-heavy-yellow hover:bg-heavy-yellow hover:text-black transition-all group"
             title="Export Field Report"
           >
             <Download className="h-5 w-5" />
@@ -75,14 +75,14 @@ const ChatPanel: React.FC = () => {
         {messages.map((msg) => (
           <div key={msg.id} className={`flex items-start gap-3 sm:gap-4 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
             {msg.sender === 'bot' && (
-              <div className="p-2 sm:p-3 bg-cyan-400 border-2 border-black rounded-sm shadow-lg">
+              <div className="p-2 sm:p-3 bg-heavy-yellow border-2 border-black rounded-sm shadow-lg">
                 <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-black" />
               </div>
             )}
             <div className={`relative max-w-[85%] sm:max-w-lg p-4 sm:p-5 border-2 ${
               msg.sender === 'user' 
-                ? 'bg-industrial-gray border-cyan-400 text-white' 
-                : 'bg-asphalt border-industrial-gray text-cyan-400 font-mono'
+                ? 'bg-industrial-gray border-heavy-yellow text-white' 
+                : 'bg-asphalt border-industrial-gray text-heavy-yellow font-mono'
             }`}>
               <div className="rivet absolute -top-1.5 -left-1.5"></div>
               <div className="rivet absolute -bottom-1.5 -right-1.5"></div>
@@ -105,14 +105,14 @@ const ChatPanel: React.FC = () => {
               <button 
                 key={s} 
                 onClick={() => handleSend(s)}
-                className="text-[10px] font-mono border border-industrial-gray px-2 py-1 hover:border-cyan-400 hover:text-cyan-400 transition-colors uppercase"
+                className="text-[10px] font-mono border border-industrial-gray px-2 py-1 hover:border-heavy-yellow hover:text-heavy-yellow transition-colors uppercase"
               >
                 > {s}
               </button>
             ))}
           </div>
         )}
-        <div className="flex items-center bg-asphalt border-2 border-industrial-gray p-1 focus-within:border-cyan-400 transition-colors">
+        <div className="flex items-center bg-asphalt border-2 border-industrial-gray p-1 focus-within:border-heavy-yellow transition-colors">
           <input
             type="text"
             value={input}
@@ -125,7 +125,7 @@ const ChatPanel: React.FC = () => {
           <button
             onClick={() => handleSend()}
             disabled={isLoading || !input.trim()}
-            className="p-3 sm:p-4 bg-cyan-400 text-black hover:bg-cyan-300 disabled:bg-gray-800 disabled:text-gray-600 transition-colors"
+            className="p-3 sm:p-4 bg-heavy-yellow text-black hover:bg-yellow-300 disabled:bg-gray-800 disabled:text-gray-600 transition-colors"
           >
             <Send className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>

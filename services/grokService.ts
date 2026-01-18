@@ -21,7 +21,8 @@ export const generateGrokChatResponse = async (prompt: string, apiKey: string): 
         messages: [
           { role: "system", content: GROK_STRICT_ADHERENCE_DIRECTIVE },
           { role: "user", content: prompt }
-        ]
+        ],
+        temperature: 0.2
       })
     });
 

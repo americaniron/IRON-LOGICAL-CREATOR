@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { LiveServerMessage, LiveSession } from "@google/genai";
 import { connectLiveSession, createPcmBlob, decodePcmAudioData, decode } from '../services/geminiService';
@@ -208,18 +207,18 @@ const LiveConversationPanel: React.FC = () => {
                 <div className="rivet absolute bottom-2 left-2"></div>
                 <div className="rivet absolute bottom-2 right-2"></div>
                 
-                <div className="flex-1 mb-8 overflow-y-auto pr-4 space-y-8 scrollbar-thin scrollbar-thumb-cyan-400">
+                <div className="flex-1 mb-8 overflow-y-auto pr-4 space-y-8 scrollbar-thin">
                     {transcript.map((entry) => (
                         <div key={entry.id} className={`flex items-start gap-4 ${entry.sender === 'user' ? 'justify-end' : ''}`}>
                             {entry.sender === 'bot' && (
-                                <div className="p-2 bg-cyan-400 border-2 border-black rounded-sm shadow-lg">
+                                <div className="p-2 bg-heavy-yellow border-2 border-black rounded-sm shadow-lg">
                                     <Bot className="h-5 w-5 text-black" />
                                 </div>
                             )}
                             <div className={`relative max-w-lg p-5 border-2 ${
                                 entry.sender === 'user' 
-                                    ? 'bg-industrial-gray border-cyan-400 text-white' 
-                                    : 'bg-asphalt border-industrial-gray text-cyan-400 font-mono'
+                                    ? 'bg-industrial-gray border-heavy-yellow text-white' 
+                                    : 'bg-asphalt border-industrial-gray text-heavy-yellow font-mono'
                             }`}>
                                 <p className="leading-relaxed font-bold tracking-tight uppercase text-sm">{entry.text}</p>
                             </div>
@@ -232,7 +231,7 @@ const LiveConversationPanel: React.FC = () => {
                     ))}
                     <div ref={transcriptEndRef} />
                      {transcript.length === 0 && connectionState === 'connected' && (
-                        <div className="text-center text-cyan-400 pt-20 animate-pulse font-mono uppercase tracking-[0.2em]">
+                        <div className="text-center text-heavy-yellow pt-20 animate-pulse font-mono uppercase tracking-[0.2em]">
                             <p className="text-lg font-black">(( TRANSMITTING ))</p>
                             <p className="text-xs mt-2 text-gray-500">Awaiting_Voice_Data_Stream...</p>
                         </div>
@@ -254,7 +253,7 @@ const LiveConversationPanel: React.FC = () => {
                             className="w-full max-w-sm !py-6 !text-2xl"
                         >
                             <Microphone className="h-8 w-8 mr-4"/>
-                            IGNITE COMM LINK
+                            OPEN CHANNEL
                         </Button>
                     ) : (
                         <Button 
@@ -263,7 +262,7 @@ const LiveConversationPanel: React.FC = () => {
                             className="w-full max-w-sm !py-6 !text-2xl"
                         >
                             <div className="h-3 w-3 bg-white rounded-full mr-4 animate-ping"></div>
-                            CEASE TRANSMISSION
+                            CLOSE CHANNEL
                         </Button>
                     )}
                 </div>

@@ -98,7 +98,7 @@ const ImagePanel: React.FC = () => {
               <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
                 Fab_Shop
               </h3>
-              <p className="text-[10px] font-mono text-cyan-400 tracking-[0.4em] uppercase font-bold">UNIT_01 // ONLINE</p>
+              <p className="text-[10px] font-mono text-heavy-yellow tracking-[0.4em] uppercase font-bold">UNIT_01 // ONLINE</p>
           </div>
         </div>
         
@@ -107,7 +107,7 @@ const ImagePanel: React.FC = () => {
             <ProviderKeyPrompt provider="gemini_pro" onKeySubmit={saveKey} />
           )}
           <Input
-            label="SITE_PROMPT"
+            label="BLUEPRINT"
             id="prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -115,7 +115,7 @@ const ImagePanel: React.FC = () => {
             required
           />
           <Input
-            label="NEGATIVE_DATA"
+            label="EXCLUSION_DATA"
             id="negative_prompt"
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
@@ -123,14 +123,14 @@ const ImagePanel: React.FC = () => {
           />
           <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <Select
-              label="RATIO"
+              label="FRAME_RATIO"
               id="aspect_ratio"
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
               options={aspectRatios.map(r => ({ value: r, label: r }))}
             />
             <Select
-              label="MODEL"
+              label="ENGINE_MODEL"
               id="model"
               value={model}
               onChange={(e) => setModel(e.target.value)}
@@ -150,7 +150,7 @@ const ImagePanel: React.FC = () => {
                   <Gear className={`h-4 w-4 transition-transform ${showProMods ? 'rotate-90' : ''}`} />
                   <span className="font-mono uppercase tracking-widest text-[10px] sm:text-xs font-bold">Engine_Modifications</span>
                 </div>
-                <span className="text-cyan-400 font-mono text-[10px]">{showProMods ? 'COLLAPSE' : 'EXPAND'}</span>
+                <span className="text-heavy-yellow font-mono text-[10px]">{showProMods ? 'COLLAPSE' : 'EXPAND'}</span>
               </button>
               {showProMods && (
                 <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-300">
@@ -167,9 +167,9 @@ const ImagePanel: React.FC = () => {
                           id="google_search"
                           checked={useGoogleSearch}
                           onChange={(e) => setUseGoogleSearch(e.target.checked)}
-                          className="h-4 w-4 rounded-none border-2 border-cyan-400 bg-asphalt text-cyan-400 focus:ring-0 cursor-pointer"
+                          className="h-4 w-4 rounded-none border-2 border-heavy-yellow bg-asphalt text-heavy-yellow focus:ring-0 cursor-pointer"
                       />
-                      <label htmlFor="google_search" className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider cursor-pointer">
+                      <label htmlFor="google_search" className="text-[10px] font-mono font-bold text-heavy-yellow uppercase tracking-wider cursor-pointer">
                           REAL_TIME_GROUNDING
                       </label>
                   </div>
@@ -178,12 +178,12 @@ const ImagePanel: React.FC = () => {
             </div>
           )}
           <Button type="submit" disabled={isLoading || (isProModel && isKeyRequired)} className="w-full !py-4 sm:!py-6">
-            {isLoading ? 'FABRICATING...' : 'EXECUTE'}
+            {isLoading ? 'FABRICATING...' : 'FABRICATE IMAGE'}
           </Button>
         </form>
       </div>
        <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
-         <div className="absolute top-2 left-4 text-[10px] font-mono text-cyan-400 tracking-widest uppercase font-bold animate-pulse">
+         <div className="absolute top-2 left-4 text-[10px] font-mono text-heavy-yellow tracking-widest uppercase font-bold animate-pulse">
             // FAB_MONITOR_01
         </div>
         
@@ -195,7 +195,7 @@ const ImagePanel: React.FC = () => {
               <img src={result.url} alt={result.prompt} className="max-w-full max-h-[40vh] sm:max-h-[60vh] lg:max-h-[500px] mx-auto object-contain" />
               <button 
                 onClick={handleDownload}
-                className="absolute bottom-2 right-2 p-2 bg-cyan-400 text-black hover:bg-white shadow-lg border border-black transition-colors"
+                className="absolute bottom-2 right-2 p-2 bg-heavy-yellow text-black hover:bg-white shadow-lg border border-black transition-colors"
                 title="Download Asset"
               >
                 <Download className="h-5 w-5" />
@@ -203,7 +203,7 @@ const ImagePanel: React.FC = () => {
             </div>
             <div className="bg-black/80 p-3 border border-industrial-gray">
                <p className="text-[8px] text-gray-500 font-mono uppercase tracking-[0.3em] mb-1">Manifest_Log</p>
-               <p className="text-[10px] sm:text-xs text-cyan-400 font-mono italic uppercase line-clamp-2">"{result.prompt}"</p>
+               <p className="text-[10px] sm:text-xs text-heavy-yellow font-mono italic uppercase line-clamp-2">"{result.prompt}"</p>
             </div>
           </div>
         )}

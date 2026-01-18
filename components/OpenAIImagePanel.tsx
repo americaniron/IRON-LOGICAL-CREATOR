@@ -87,13 +87,13 @@ const OpenAIImagePanel: React.FC = () => {
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 w-full h-full">
-      <div className="control-panel p-4 sm:p-8 flex flex-col h-full overflow-y-auto scrollbar-thin border-2 border-guest-green/20">
+      <div className="control-panel p-4 sm:p-8 flex flex-col h-full overflow-y-auto scrollbar-thin">
         <div className="flex justify-between items-end mb-6 pb-4 border-b-2 border-industrial-gray">
           <div>
               <h3 className="text-2xl sm:text-3xl font-['Black_Ops_One'] text-white tracking-widest uppercase mb-1">
                 DALL-E Forge
               </h3>
-              <p className="text-[10px] font-mono text-guest-green tracking-[0.4em] uppercase font-bold">GUEST_SYSTEM // ONLINE</p>
+              <p className="text-[10px] font-mono text-heavy-yellow tracking-[0.4em] uppercase font-bold">GUEST_SYSTEM // ONLINE</p>
           </div>
         </div>
         
@@ -132,13 +132,13 @@ const OpenAIImagePanel: React.FC = () => {
             />
           </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full !py-4 sm:!py-6 !bg-guest-green !border-t-green-300 !shadow-[0_4px_0_#15803d] hover:!shadow-[0_4px_0_#16a34a] !text-black">
-            {isLoading ? 'FORGING...' : 'EXECUTE'}
+          <Button type="submit" disabled={isLoading} className="w-full !py-4 sm:!py-6">
+            {isLoading ? 'FORGING...' : 'FABRICATE IMAGE'}
           </Button>
         </form>
       </div>
        <div className="monitor-screen min-h-[300px] flex flex-col items-center justify-center h-full relative overflow-hidden blueprint-grid p-4">
-         <div className="absolute top-2 left-4 text-[10px] font-mono text-guest-green tracking-widest uppercase font-bold animate-pulse">
+         <div className="absolute top-2 left-4 text-[10px] font-mono text-heavy-yellow tracking-widest uppercase font-bold animate-pulse">
             // GUEST_FAB_MONITOR_02
         </div>
         
@@ -150,7 +150,7 @@ const OpenAIImagePanel: React.FC = () => {
               <img src={result.url} alt={result.prompt} className="max-w-full max-h-[40vh] sm:max-h-[60vh] lg:max-h-[500px] mx-auto object-contain" />
               <button 
                 onClick={handleDownload}
-                className="absolute bottom-2 right-2 p-2 bg-guest-green text-black hover:bg-white shadow-lg border border-black transition-colors"
+                className="absolute bottom-2 right-2 p-2 bg-heavy-yellow text-black hover:bg-white shadow-lg border border-black transition-colors"
                 title="Download Guest Asset"
               >
                 <Download className="h-5 w-5" />
@@ -158,7 +158,7 @@ const OpenAIImagePanel: React.FC = () => {
             </div>
             <div className="bg-black/80 p-3 border border-industrial-gray">
                <p className="text-[8px] text-gray-500 font-mono uppercase tracking-[0.3em] mb-1">Manifest_Log</p>
-               <p className="text-[10px] text-guest-green font-mono italic uppercase line-clamp-2">"{result.prompt}"</p>
+               <p className="text-[10px] text-heavy-yellow font-mono italic uppercase line-clamp-2">"{result.prompt}"</p>
             </div>
           </div>
         )}

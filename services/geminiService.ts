@@ -191,13 +191,14 @@ export const connectLiveSession = (callbacks: {
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         callbacks: callbacks,
         config: {
-          responseModalalities: [Modality.AUDIO],
+          responseModalities: [Modality.AUDIO],
           inputAudioTranscription: {},
           outputAudioTranscription: {},
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
           },
           safetySettings: safetySettings,
+          temperature: 0.2,
         },
     });
 };
@@ -215,6 +216,7 @@ export const generateChatResponse = async (prompt: string): Promise<string> => {
         config: {
             systemInstruction: "YOU ARE THE IRON MEDIA COMMAND ORCHESTRATOR. RESPOND WITH TECHNICAL PRECISION. ALL OUTPUT MUST BE UPPERCASE INDUSTRIAL DIALECT.",
             safetySettings: safetySettings,
+            temperature: 0.2,
         }
     });
     const result = await chat.sendMessage({ message: prompt });
@@ -239,6 +241,7 @@ export const generateImage = async (prompt: string, negativePrompt: string, aspe
       },
       tools: useGoogleSearch ? [{ googleSearch: {} }] : undefined,
       safetySettings: safetySettings,
+      temperature: 0.2,
     };
 
     if (resolution) {
@@ -291,6 +294,7 @@ export const generateSpeech = async (text: string, voice: string): Promise<strin
             },
           },
           safetySettings: safetySettings,
+          temperature: 0.2,
         },
       });
   

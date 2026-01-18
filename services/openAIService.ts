@@ -1,4 +1,3 @@
-
 // OpenAI Service Implementation
 
 const OPENAI_STRICT_ADHERENCE_DIRECTIVE = `
@@ -22,7 +21,8 @@ export const generateOpenAIChatResponse = async (prompt: string, apiKey: string)
         messages: [
           { role: "system", content: OPENAI_STRICT_ADHERENCE_DIRECTIVE },
           { role: "user", content: prompt }
-        ]
+        ],
+        temperature: 0.2
       })
     });
 

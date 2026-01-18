@@ -8,10 +8,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary', ...props }) => {
   const variants = {
     primary: `
-      bg-gradient-to-b from-[#EBB700] to-[#B38A00] 
-      text-black border-t-2 border-[#FFD700] border-x-2 border-black
-      shadow-[0_6px_0_#7A5F00,0_8px_15px_rgba(0,0,0,0.6)]
-      hover:from-[#FFD700] hover:to-[#EBB700] hover:shadow-[0_6px_0_#9A7800,0_8px_15px_rgba(0,0,0,0.5)]
+      bg-gradient-to-b from-[#FFD300] to-[#C7A600] 
+      text-black border-t-2 border-[#FFF0A3] border-x-2 border-black
+      shadow-[0_6px_0_#856E00,0_8px_15px_rgba(0,0,0,0.6)]
+      hover:from-[#FFF0A3] hover:to-[#FFD300] hover:shadow-[0_6px_0_#A38A00,0_8px_15px_rgba(0,0,0,0.5)]
       active:shadow-none active:translate-y-[6px]
     `,
     danger: `
@@ -23,7 +23,7 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary
     `,
     warning: `
       bg-gradient-to-b from-[#F97316] to-[#C2410C] 
-      text-black border-t-2 border-[#FB923C] border-x-2 border-black
+      text-white border-t-2 border-[#FB923C] border-x-2 border-black
       shadow-[0_6px_0_#9A3412,0_8px_15px_rgba(0,0,0,0.6)]
       hover:from-[#FB923C] hover:to-[#F97316] hover:shadow-[0_6px_0_#B9500C,0_8px_15px_rgba(0,0,0,0.5)]
       active:shadow-none active:translate-y-[6px]
@@ -36,7 +36,7 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary
         px-6 py-3 text-sm 
         sm:text-base md:px-8 md:py-4 md:text-xl
         font-['Black_Ops_One'] uppercase tracking-[0.1em] 
-        rounded-sm transition-all duration-100 
+        rounded-none transition-all duration-100 
         flex items-center justify-center gap-3 
         disabled:bg-gray-700 disabled:shadow-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:translate-y-[6px]
         ${variants[variant as keyof typeof variants]} 
