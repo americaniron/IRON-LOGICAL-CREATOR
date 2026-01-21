@@ -1,10 +1,7 @@
-import { UserAccount, AccessRequest, UserSession, Asset, Message, Task } from '../types';
+import { UserAccount, AccessRequest, UserSession, Asset, Message, Task, FABRICATION_COSTS } from '../types';
 import { ApiProvider } from '../hooks/useApiKeyManager';
 
-// --- MOCK DATABASE ---
-// In a real application, this would be a remote database.
-// We use localStorage to simulate persistence across page reloads.
-
+// --- INDUSTRIAL DATABASE (SIMULATED) ---
 const db = {
   users: (): UserAccount[] => JSON.parse(localStorage.getItem('im_db_users') || '[]'),
   requests: (): AccessRequest[] => JSON.parse(localStorage.getItem('im_db_requests') || '[]'),
@@ -19,66 +16,128 @@ const db = {
   saveApiKeys: (userId: string, keys: Partial<Record<ApiProvider, string>>) => localStorage.setItem(`im_db_apikeys_${userId}`, JSON.stringify(keys)),
 };
 
-// Seed admin user if it doesn't exist
-const seedAdmin = () => {  
+// Seed initial system admin
+const seedSystem = () => {  
   const users = db.users();
   if (!users.some(u => u.role === 'admin')) {
-    users.push({ id: 'admin_001', name: 'COMMANDER', pin: '01970', role: 'admin' });
+    users.push({ 
+        id: 'admin_001', 
+        name: 'COMMANDER_Z', 
+        pin: '01970', 
+        role: 'admin', 
+        credits: 999999, 
+        plan: 'commander',
+        joinedAt: Date.now() 
+    });
     db.saveUsers(users);
   }
 };
-seedAdmin();
+seedSystem();
 
+const SESSION_KEY = 'im_session_token';
 
-// --- MOCK SESSION MANAGEMENT ---
-// In a real app, JWT would be httpOnly cookies. We use sessionStorage.
-const SESSION_KEY = 'im_session';
+// --- CORE UTILITIES ---
 
-const createSession = (user: UserAccount): UserSession => {
-    // This is a fake token for demonstration purposes.
-    const token = `jwt_token_${user.id}_${Date.now()}`;
-    const session: UserSession = { id: user.id, name: user.name, role: user.role, token };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    return session;
-};
-
-const getSession = (): UserSession | null => {
+export const getSession = (): UserSession | null => {
     const sessionData = sessionStorage.getItem(SESSION_KEY);
     return sessionData ? JSON.parse(sessionData) : null;
 };
 
-const clearSession = () => {
-    sessionStorage.removeItem(SESSION_KEY);
+const updateStoredUser = (updatedUser: UserAccount) => {
+    const users = db.users();
+    const index = users.findIndex(u => u.id === updatedUser.id);
+    if (index !== -1) {
+        users[index] = updatedUser;
+        db.saveUsers(users);
+    }
 };
 
 // --- AUTHENTICATION API ---
+
 export const checkSession = async (): Promise<UserSession | null> => {
-    await new Promise(res => setTimeout(res, 300)); // Simulate network latency
-    return getSession();
+    await new Promise(res => setTimeout(res, 200));
+    const session = getSession();
+    if (!session) return null;
+    
+    // Refresh user data from DB to ensure credits are up to date
+    const users = db.users();
+    const user = users.find(u => u.id === session.id);
+    if (!user) return null;
+    
+    return { ...session, credits: user.credits, plan: user.plan };
 };
 
 export const login = async (pin: string): Promise<{ success: boolean; session?: UserSession, message?: string }> => {
-    await new Promise(res => setTimeout(res, 500));
+    await new Promise(res => setTimeout(res, 800));
     const users = db.users();
     const user = users.find(u => u.pin === pin);
 
     if (user) {
-        const session = createSession(user);
+        const token = `im_jwt_${user.id}_${Math.random().toString(36).substring(7)}`;
+        const session: UserSession = { 
+            id: user.id, 
+            name: user.name, 
+            role: user.role, 
+            credits: user.credits,
+            plan: user.plan,
+            joinedAt: user.joinedAt,
+            token 
+        };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
         return { success: true, session };
     }
-    return { success: false, message: 'INVALID CREDENTIALS' };
+    return { success: false, message: 'CREDENTIAL_FAILURE: ACCESS_DENIED' };
 };
 
 export const logout = async (): Promise<void> => {
-    clearSession();
+    sessionStorage.removeItem(SESSION_KEY);
 };
 
+// --- RESOURCE MANAGEMENT (CREDITS) ---
+
+export const deductCredits = async (amount: number): Promise<boolean> => {
+    const session = getSession();
+    if (!session) return false;
+    
+    const users = db.users();
+    const user = users.find(u => u.id === session.id);
+    
+    if (user && user.credits >= amount) {
+        user.credits -= amount;
+        updateStoredUser(user);
+        
+        // Update session to reflect new balance
+        const updatedSession = { ...session, credits: user.credits };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+        return true;
+    }
+    return false;
+};
+
+export const addCreditsToUser = async (userId: string, amount: number): Promise<void> => {
+    const session = getSession();
+    if (session?.role !== 'admin') throw new Error("INSUFFICIENT_CLEARANCE");
+    
+    const users = db.users();
+    const user = users.find(u => u.id === userId);
+    if (user) {
+        user.credits += amount;
+        updateStoredUser(user);
+    }
+};
 
 // --- ADMIN & ACCESS REQUEST API ---
+
 export const getAccessRequests = async (): Promise<AccessRequest[]> => {
     const session = getSession();
     if (session?.role !== 'admin') return [];
     return db.requests();
+};
+
+export const getAllUsers = async (): Promise<UserAccount[]> => {
+    const session = getSession();
+    if (session?.role !== 'admin') return [];
+    return db.users();
 };
 
 export const submitAccessRequest = async (name: string, reason: string): Promise<void> => {
@@ -97,12 +156,20 @@ export const approveRequest = async (id: string): Promise<void> => {
 
     if (requestIndex > -1) {
         let newPin = Math.floor(10000 + Math.random() * 90000).toString();
-        while (users.some(u => u.pin === newPin) || newPin === '01970') {
+        while (users.some(u => u.pin === newPin)) {
             newPin = Math.floor(10000 + Math.random() * 90000).toString();
         }
         
         const req = requests[requestIndex];
-        const newUser: UserAccount = { id: `user_${Date.now()}`, name: req.name, pin: newPin, role: 'user' };
+        const newUser: UserAccount = { 
+            id: `user_${Date.now()}`, 
+            name: req.name, 
+            pin: newPin, 
+            role: 'user',
+            credits: 500, // Initial balance
+            plan: 'basic',
+            joinedAt: Date.now()
+        };
         
         db.saveUsers([...users, newUser]);
         
@@ -124,41 +191,8 @@ export const denyRequest = async (id: string): Promise<void> => {
     }
 };
 
-// --- API KEY MANAGEMENT ---
-export const saveApiKey = async (provider: ApiProvider, key: string): Promise<void> => {
-    const session = getSession();
-    if (!session) throw new Error("Not authenticated");
-    
-    const userKeys = db.apiKeys(session.id);
-    userKeys[provider] = key;
-    db.saveApiKeys(session.id, userKeys);
-};
-
-export const hasApiKey = async (provider: ApiProvider): Promise<boolean> => {
-    const session = getSession();
-    if (!session) return false;
-    
-    const userKeys = db.apiKeys(session.id);
-    return !!userKeys[provider];
-};
-
-export const getApiKey = async (provider: ApiProvider): Promise<string | null> => {
-    const session = getSession();
-    if (!session) return null;
-    const userKeys = db.apiKeys(session.id);
-    return userKeys[provider] || null;
-}
-
-export const clearApiKey = (provider: ApiProvider): void => {
-    const session = getSession();
-    if (!session) return;
-    const userKeys = db.apiKeys(session.id);
-    delete userKeys[provider];
-    db.saveApiKeys(session.id, userKeys);
-}
-
-
 // --- USER DATA API ---
+
 export const getAssets = async (): Promise<Asset[]> => {
     const session = getSession();
     if (!session) return [];
@@ -192,22 +226,19 @@ export const getChatHistories = async (): Promise<Record<Task, Message[]>> => {
     if (!session) return {} as Record<Task, Message[]>;
     
     const histories = db.chats(session.id);
-    // Ensure default histories exist
     const defaultHistories: Record<Task.Chat | Task.OpenAIChat | Task.GrokChat, Message[]> = {
-        [Task.Chat]: [{ id: '1', text: "OPERATIONS ONLINE. STATE YOUR FABRICATION REQUIREMENTS.", sender: 'bot' }],
-        [Task.OpenAIChat]: [{ id: '1', text: "GUEST SYSTEM ONLINE. GPT-CLASS MODEL READY.", sender: 'bot' }],
-        [Task.GrokChat]: [{ id: '1', text: "GROK_CONDUIT ACTIVE. WHAT'S THE MISSION?", sender: 'bot' }]
+        [Task.Chat]: [{ id: '1', text: "IRON MEDIA ORCHESTRATOR ONLINE. STANDBY FOR COMMANDS.", sender: 'bot' }],
+        [Task.OpenAIChat]: [{ id: '1', text: "GPT_GUEST_LINK ESTABLISHED.", sender: 'bot' }],
+        [Task.GrokChat]: [{ id: '1', text: "GROK_CONDUIT HOT. MISSION READY.", sender: 'bot' }]
     };
 
-    // Initialize all possible tasks with empty arrays to conform to the type.
     const fullHistory = Object.fromEntries(
         Object.values(Task).map(task => [task, []])
     ) as Record<Task, Message[]>;
 
     return {
-        ...fullHistory, // Ensures all keys from the Task enum are present
-        ...histories, // Overwrites with persisted histories
-        // Ensures defaults are present if no history exists for these specific chats
+        ...fullHistory,
+        ...histories,
         [Task.Chat]: histories[Task.Chat] || defaultHistories[Task.Chat],
         [Task.OpenAIChat]: histories[Task.OpenAIChat] || defaultHistories[Task.OpenAIChat],
         [Task.GrokChat]: histories[Task.GrokChat] || defaultHistories[Task.GrokChat],
@@ -221,7 +252,6 @@ export const addMessage = async (task: Task.Chat | Task.OpenAIChat | Task.GrokCh
     const userChats = await getChatHistories();
     const history = userChats[task] || [];
     
-    // Filter out any existing "typing" indicators before adding the new message.
     const updatedHistory = history.filter(m => !m.isTyping);
     updatedHistory.push(message);
 
@@ -229,3 +259,33 @@ export const addMessage = async (task: Task.Chat | Task.OpenAIChat | Task.GrokCh
     db.saveChats(session.id, userChats);
     return updatedHistory;
 };
+
+export const hasApiKey = async (provider: ApiProvider): Promise<boolean> => {
+    const session = getSession();
+    if (!session) return false;
+    const userKeys = db.apiKeys(session.id);
+    return !!userKeys[provider];
+};
+
+export const saveApiKey = async (provider: ApiProvider, key: string): Promise<void> => {
+    const session = getSession();
+    if (!session) throw new Error("Not authenticated");
+    const userKeys = db.apiKeys(session.id);
+    userKeys[provider] = key;
+    db.saveApiKeys(session.id, userKeys);
+};
+
+export const getApiKey = async (provider: ApiProvider): Promise<string | null> => {
+    const session = getSession();
+    if (!session) return null;
+    const userKeys = db.apiKeys(session.id);
+    return userKeys[provider] || null;
+}
+
+export const clearApiKey = (provider: ApiProvider): void => {
+    const session = getSession();
+    if (!session) return;
+    const userKeys = db.apiKeys(session.id);
+    delete userKeys[provider];
+    db.saveApiKeys(session.id, userKeys);
+}

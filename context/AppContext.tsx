@@ -1,5 +1,6 @@
+
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
-import { Task, Asset, AccessRequest, UserAccount, Message, UserSession } from '../types';
+import { Task, Asset, AccessRequest, UserAccount, Message, UserSession, FABRICATION_COSTS } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import * as backend from '../services/backendService';
 import { ApiProvider } from '../hooks/useApiKeyManager';
@@ -23,9 +24,11 @@ interface AppContextType {
   
   // Admin State
   accessRequests: AccessRequest[];
+  allUsers: UserAccount[];
   approveRequest: (id: string) => Promise<void>;
   denyRequest: (id: string) => Promise<void>;
   submitAccessRequest: (name: string, reason: string) => Promise<void>;
+  allocateCredits: (userId: string, amount: number) => Promise<void>;
 
   // User Data State
   assets: Asset[];
@@ -34,6 +37,11 @@ interface AppContextType {
   
   chatHistories: Record<Task, Message[]>;
   addMessage: (task: Task.Chat | Task.OpenAIChat | Task.GrokChat, message: Message) => Promise<void>;
+  
+  // Credit Management
+  userCredits: number;
+  hasSufficientCredits: (task: Task) => boolean;
+  consumeCredits: (task: Task) => Promise<boolean>;
 
   // Onboarding
   showOnboarding: boolean;
@@ -46,88 +54,65 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // UI State
   const [activeTask, setActiveTask] = useLocalStorage<Task>('im_active_task', Task.Chat);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('im_theme', 'dark');
 
-  // Auth State
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
+  const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
   const isAuthenticated = !!currentUser;
   const isAdmin = currentUser?.role === 'admin';
 
-  // Admin State
   const [accessRequests, setAccessRequests] = useState<AccessRequest[]>([]);
-
-  // User Data State
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [chatHistories, setChatHistories] = useState<Record<Task, Message[]>>({
-      [Task.Chat]: [], [Task.OpenAIChat]: [], [Task.GrokChat]: []
-  } as Record<Task, Message[]>);
+  const [chatHistories, setChatHistories] = useState<Record<Task, Message[]>>({} as Record<Task, Message[]>);
   
-  // Onboarding State
   const [hasSeenOnboarding, setHasSeenOnboarding] = useLocalStorage('im_has_seen_onboarding', false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // --- Effects ---
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove(theme === 'dark' ? 'light-theme' : 'dark');
     root.classList.add(theme === 'dark' ? 'dark' : 'light-theme');
   }, [theme]);
   
-  useEffect(() => {
-    const verifySession = async () => {
-        const session = await backend.checkSession();
-        if (session) {
-            await fetchAllUserData();
-            setCurrentUser(session);
-        }
-        setIsAuthenticating(false);
-    };
-    verifySession();
-  }, []);
+  // Fix: Added missing toggleTheme function definition to satisfy AppContextType and Provide value
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  }, [setTheme]);
 
-  useEffect(() => {
-    if(isAdmin) {
-        const fetchRequests = async () => {
-            const requests = await backend.getAccessRequests();
-            setAccessRequests(requests);
-        }
-        fetchRequests();
-    }
-  }, [isAdmin]);
-
-  // --- Methods ---
-
-  const fetchAllUserData = async () => {
-      const [userAssets, userChats, requests] = await Promise.all([
+  const fetchAllUserData = useCallback(async () => {
+      const [userAssets, userChats, requests, usersList] = await Promise.all([
           backend.getAssets(),
           backend.getChatHistories(),
-          backend.getAccessRequests() // Fetch for admin badge counts etc. in future
+          backend.getAccessRequests(),
+          backend.getAllUsers()
       ]);
       setAssets(userAssets);
       setChatHistories(userChats);
       setAccessRequests(requests);
-  };
-  
-  const clearAllUserData = () => {
-      setAssets([]);
-      setChatHistories({ [Task.Chat]: [], [Task.OpenAIChat]: [], [Task.GrokChat]: [] } as Record<Task, Message[]>);
-      setAccessRequests([]);
-  };
+      setAllUsers(usersList);
+  }, []);
+
+  useEffect(() => {
+    const verifySession = async () => {
+        const session = await backend.checkSession();
+        if (session) {
+            setCurrentUser(session);
+            await fetchAllUserData();
+        }
+        setIsAuthenticating(false);
+    };
+    verifySession();
+  }, [fetchAllUserData]);
 
   const login = async (pin: string) => {
     const result = await backend.login(pin);
     if (result.success && result.session) {
-      setIsAuthenticating(true);
       setCurrentUser(result.session);
       await fetchAllUserData();
-      if (!hasSeenOnboarding) {
-        setShowOnboarding(true);
-      }
-      setIsAuthenticating(false);
+      if (!hasSeenOnboarding) setShowOnboarding(true);
     }
     return { success: result.success, message: result.message };
   };
@@ -135,23 +120,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const logout = async () => {
     await backend.logout();
     setCurrentUser(null);
-    clearAllUserData();
-  };
-  
-  const approveRequest = async (id: string) => {
-      await backend.approveRequest(id);
-      const requests = await backend.getAccessRequests();
-      setAccessRequests(requests);
+    setAssets([]);
+    setChatHistories({} as Record<Task, Message[]>);
   };
 
-  const denyRequest = async (id: string) => {
-      await backend.denyRequest(id);
-      const requests = await backend.getAccessRequests();
-      setAccessRequests(requests);
+  const allocateCredits = async (userId: string, amount: number) => {
+      await backend.addCreditsToUser(userId, amount);
+      const updatedUsers = await backend.getAllUsers();
+      setAllUsers(updatedUsers);
   };
-  
-  const submitAccessRequest = async (name: string, reason: string) => {
-      await backend.submitAccessRequest(name, reason);
+
+  const hasSufficientCredits = (task: Task) => {
+      const cost = (FABRICATION_COSTS as any)[task] || 0;
+      return (currentUser?.credits || 0) >= cost;
+  };
+
+  const consumeCredits = async (task: Task) => {
+      const cost = (FABRICATION_COSTS as any)[task] || 0;
+      const success = await backend.deductCredits(cost);
+      if (success && currentUser) {
+          setCurrentUser({ ...currentUser, credits: currentUser.credits - cost });
+      }
+      return success;
   };
 
   const addAsset = async (assetData: Omit<Asset, 'id' | 'timestamp'>) => {
@@ -159,38 +149,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setAssets(prev => [newAsset, ...prev]);
   };
 
-  const removeAsset = async (assetId: string) => {
-      await backend.removeAsset(assetId);
-      setAssets(prev => prev.filter(a => a.id !== assetId));
-  };
-
   const addMessage = async (task: Task.Chat | Task.OpenAIChat | Task.GrokChat, message: Message) => {
       const updatedHistory = await backend.addMessage(task, message);
       setChatHistories(prev => ({...prev, [task]: updatedHistory}));
   };
 
-  const closeOnboarding = () => {
-      setShowOnboarding(false);
-      setHasSeenOnboarding(true);
+  const approveRequest = async (id: string) => {
+      await backend.approveRequest(id);
+      await fetchAllUserData();
   };
 
-  const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
+  const denyRequest = async (id: string) => {
+      await backend.denyRequest(id);
+      await fetchAllUserData();
   };
-  
+
   const handleApiError = useCallback((error: unknown, provider: ApiProvider) => {
       if (error instanceof Error) {
           const msg = error.message.toLowerCase();
-          if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized') || msg.includes('permission_denied') || msg.includes('requested entity was not found')) {
-              if (provider === 'gemini_pro') {
-                  // This is a special case handled by window.aistudio
-                  // The key reset is handled inside the component logic
-              } else {
-                  console.warn(`Authentication error for ${provider}. Forcing key re-entry.`);
-                  backend.clearApiKey(provider);
-                  // Force a reload to bring user back to the key prompt screen
-                  window.location.reload();
-              }
+          if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized')) {
+              backend.clearApiKey(provider);
+              window.location.reload();
           }
       }
   }, []);
@@ -198,15 +177,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider 
       value={{ 
-        activeTask, setActiveTask, 
-        isSidebarOpen, setIsSidebarOpen,
-        theme, toggleTheme,
-        isAuthenticating, isAuthenticated, isAdmin, currentUser,
-        login, logout,
-        accessRequests, approveRequest, denyRequest, submitAccessRequest,
-        assets, addAsset, removeAsset,
-        chatHistories, addMessage,
-        showOnboarding, closeOnboarding,
+        activeTask, setActiveTask, isSidebarOpen, setIsSidebarOpen, theme, toggleTheme,
+        isAuthenticating, isAuthenticated, isAdmin, currentUser, login, logout,
+        accessRequests, allUsers, approveRequest, denyRequest, submitAccessRequest: backend.submitAccessRequest, allocateCredits,
+        assets, addAsset, removeAsset: backend.removeAsset, chatHistories, addMessage,
+        userCredits: currentUser?.credits || 0, hasSufficientCredits, consumeCredits,
+        showOnboarding, closeOnboarding: () => { setShowOnboarding(false); setHasSeenOnboarding(true); },
         handleApiError
       }}
     >
@@ -217,8 +193,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 export const useAppContext = (): AppContextType => {
   const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
+  if (context === undefined) throw new Error('useAppContext must be used within an AppProvider');
   return context;
 };

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Task } from '../types';
+import { Task, FABRICATION_COSTS } from '../types';
 import { useApiKeyManager } from '../hooks/useApiKeyManager';
 import { useAppContext } from '../context/AppContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -37,9 +37,11 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
   const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
   const [upscaleError, setUpscaleError] = useState<string | null>(null);
 
-  const { addAsset } = useAppContext();
+  const { addAsset, hasSufficientCredits, consumeCredits } = useAppContext();
   const { isKeyRequired, isReady, saveKey } = useApiKeyManager('gemini_pro');
   const { isLoading, error, resultUrl, progressMessage, estimatedTimeRemaining, generateVideo } = useVeo();
+
+  const cost = task === Task.TextToVideo ? FABRICATION_COSTS[Task.TextToVideo] : FABRICATION_COSTS[Task.ImageToVideo];
 
   const maxDuration = useMemo(() => {
     return model === 'veo-3.1-generate-preview' ? 60 : 15;
@@ -93,6 +95,14 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
     if (!prompt.trim() && task === Task.TextToVideo) return;
     if (!imageFile && task === Task.ImageToVideo) return;
     
+    if (!hasSufficientCredits(task)) {
+        alert("INSUFFICIENT ENERGY: INJECT MORE CREDITS IN ADMIN_CMD");
+        return;
+    }
+
+    const startSuccess = await consumeCredits(task);
+    if (!startSuccess) return;
+
     await generateVideo({
         prompt: prompt.trim(),
         duration,
@@ -101,7 +111,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         model,
         imageFile: imageFile?.file
     });
-  }, [prompt, duration, aspectRatio, resolution, model, imageFile, task, generateVideo]);
+  }, [prompt, duration, aspectRatio, resolution, model, imageFile, task, generateVideo, hasSufficientCredits, consumeCredits]);
 
   const handleUpscale = useCallback(async () => {
     if (!resultUrl) return;
@@ -197,15 +207,15 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
               }))}
             />
 
-          {(duration > 8 || model === 'veo-3.1-generate-preview') && (
-            <p className="text-[9px] md:text-[10px] font-mono text-orange-500 uppercase animate-pulse leading-tight">
-               // Notice: Long-form fabrication requires 720p calibration.
-            </p>
-          )}
-
-          <Button type="submit" disabled={isLoading || isKeyRequired} className="w-full !py-4 md:!py-6">
-            {isLoading ? 'ORCHESTRATING...' : 'FABRICATE VIDEO'}
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button type="submit" disabled={isLoading || isKeyRequired} className="flex-1 !py-4 md:!py-6">
+                {isLoading ? 'ORCHESTRATING...' : `FABRICATE VIDEO`}
+            </Button>
+            <div className="bg-black/80 px-4 py-4 border-2 border-industrial-gray text-center min-w-[100px]">
+                <p className="text-[8px] font-mono text-gray-500 uppercase">RESOURCE_COST</p>
+                <p className="text-heavy-yellow font-black font-mono">{cost} IC</p>
+            </div>
+          </div>
         </form>
       </div>
 

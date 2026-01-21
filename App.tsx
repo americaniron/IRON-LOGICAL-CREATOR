@@ -20,21 +20,37 @@ import OnboardingModal from './components/OnboardingModal';
 import { Task } from './types';
 import Spinner from './components/common/Spinner';
 
+const CreditGauge: React.FC = () => {
+    const { userCredits, currentUser } = useAppContext();
+    const max = currentUser?.plan === 'commander' ? 999999 : (currentUser?.plan === 'pro' ? 5000 : 1000);
+    const percentage = Math.min((userCredits / max) * 100, 100);
+    
+    return (
+        <div className="flex items-center gap-4 bg-black/40 px-4 py-1.5 border border-industrial-gray shadow-inner hidden md:flex">
+            <span className="text-[9px] font-mono text-heavy-yellow uppercase font-bold tracking-widest">System_Energy:</span>
+            <div className="w-32 h-2 bg-gray-900 border border-industrial-gray relative overflow-hidden">
+                <div 
+                    className="h-full bg-heavy-yellow shadow-[0_0_10px_var(--heavy-yellow)] transition-all duration-500" 
+                    style={{ width: `${percentage}%` }}
+                ></div>
+            </div>
+            <span className="text-[10px] font-mono text-white font-black">{userCredits} IC</span>
+        </div>
+    );
+};
+
 const AppContent: React.FC = () => {
   const { activeTask, isSidebarOpen, setIsSidebarOpen, isAuthenticated, isAuthenticating, showOnboarding, closeOnboarding } = useAppContext();
 
   if (isAuthenticating) {
     return (
-      <div className="fixed inset-0 z-[100] bg-[var(--asphalt-gray)] flex items-center justify-center">
-        <Spinner text="AUTHENTICATING..." />
+      <div className="fixed inset-0 z-[100] bg-[var(--industrial-black)] flex items-center justify-center">
+        <Spinner text="VERIFYING OPERATIVE CLEARANCE..." />
       </div>
     );
   }
   
-  // Guard Clause for Authentication
-  if (!isAuthenticated) {
-      return <AuthScreen />;
-  }
+  if (!isAuthenticated) return <AuthScreen />;
 
   const renderContent = () => {
     switch (activeTask) {
@@ -61,40 +77,26 @@ const AppContent: React.FC = () => {
       {showOnboarding && <OnboardingModal onClose={closeOnboarding} />}
       <Sidebar />
       {isSidebarOpen && (
-          <div 
-              onClick={() => setIsSidebarOpen(false)} 
-              className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300"
-              aria-hidden="true"
-          ></div>
+          <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"></div>
       )}
       <div className="flex flex-col flex-1 relative overflow-hidden h-full">
-        {/* Reinforced Frame - Hidden on small screens for space */}
-        <div className="absolute inset-0 pointer-events-none border-4 sm:border-8 border-[var(--border-secondary)] z-30 hidden md:block" aria-hidden="true"></div>
-        <div className="absolute inset-2 pointer-events-none border border-[var(--border-primary)] z-30 opacity-50 hidden md:block" aria-hidden="true"></div>
-        
+        <div className="absolute inset-0 pointer-events-none border-4 sm:border-8 border-[var(--border-secondary)] z-30 hidden md:block"></div>
         <Header />
-        
         <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 overflow-y-auto relative z-10 scrollbar-thin">
-          <div className="w-full h-full max-w-[1600px] mx-auto pb-10 sm:pb-0">
+          <div className="w-full h-full max-w-[1600px] mx-auto">
             {renderContent()}
           </div>
         </main>
-        
-        <footer className="h-8 sm:h-10 bg-[var(--bg-tertiary)] border-t-2 border-[var(--border-primary)] flex items-center px-4 sm:px-6 z-20 shrink-0">
+        <footer className="h-10 sm:h-12 bg-black border-t-2 border-industrial-gray flex items-center px-4 sm:px-6 z-20 shrink-0">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-[var(--accent-primary)] shadow-[var(--accent-glow)] border border-yellow-900"></div>
-                <span className="text-[7px] sm:text-[9px] md:text-[10px] font-mono text-[var(--text-secondary)] uppercase tracking-widest font-bold hidden xs:inline">CORE_LINK: <span className="text-[var(--accent-primary)]">ACTIVE</span></span>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-heavy-yellow shadow-[0_0_8px_var(--heavy-yellow)] animate-pulse"></div>
+                <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest font-bold">LINK_STATUS: <span className="text-white">ENCRYPTED</span></span>
               </div>
-              <div className="hidden sm:flex items-center gap-2">
-                <div className="h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_8px_#FFFFFF] border border-gray-900"></div>
-                <span className="text-[10px] font-mono text-[var(--text-secondary)] uppercase tracking-widest font-bold">POWER: <span className="text-[var(--text-primary)]">NOMINAL</span></span>
-              </div>
+              <CreditGauge />
             </div>
-            <div className="text-right">
-                <p className="text-[7px] sm:text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-tighter truncate max-w-[150px] sm:max-w-none">IM_ORCHESTRATOR_V6.0_STABLE</p>
-            </div>
+            <p className="text-[10px] font-mono text-gray-700 uppercase tracking-widest">IM_ORCHESTRATOR_V6.1_LIVE</p>
           </div>
         </footer>
       </div>

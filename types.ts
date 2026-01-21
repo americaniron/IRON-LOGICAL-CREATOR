@@ -58,13 +58,27 @@ export interface AccessRequest {
     generatedPin?: string;
 }
 
+export type OperativePlan = 'basic' | 'pro' | 'commander';
+
 export interface UserAccount {
     id: string;
     name: string;
     pin: string;
     role: 'admin' | 'user';
+    credits: number;
+    plan: OperativePlan;
+    joinedAt: number;
 }
 
 export interface UserSession extends Omit<UserAccount, 'pin'> {
     token: string;
 }
+
+export const FABRICATION_COSTS = {
+    [Task.Chat]: 1,
+    [Task.TextToImage]: 25,
+    [Task.TextToVideo]: 100,
+    [Task.ImageToVideo]: 150,
+    [Task.TextToSpeech]: 10,
+    [Task.LiveConversation]: 50, // Per session
+} as const;
