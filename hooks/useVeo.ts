@@ -42,6 +42,21 @@ export const useVeo = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setEstimatedTimeRemaining(null);
   };
+
+  const pollOperation = useCallback(async (initialOperation: any) => {
+      let operation = initialOperation;
+      let messageIndex = 1;
+      while (!operation.done) {
+          if (!isMounted.current) throw new Error('Operation cancelled: Component unmounted.');
+          await new Promise(resolve => setTimeout(resolve, 8000));
+          operation = await checkVideoOperationStatus(operation);
+
+          if (!isMounted.current) throw new Error('Operation cancelled: Component unmounted.');
+          setProgressMessage(VIDEO_GENERATION_MESSAGES[messageIndex % VIDEO_GENERATION_MESSAGES.length]);
+          messageIndex++;
+      }
+      return operation;
+  }, []);
   
   const generateVideo = useCallback(async (params: GenerateVideoParams) => {
     if (!isMounted.current) return;
@@ -67,14 +82,12 @@ export const useVeo = () => {
         params.imageFile
       );
       
-      let messageIndex = 1;
-      while (!operation.done) {
-        if (!isMounted.current) return;
-        await new Promise(resolve => setTimeout(resolve, 8000));
-        operation = await checkVideoOperationStatus(operation);
-        if (!isMounted.current) return;
-        setProgressMessage(VIDEO_GENERATION_MESSAGES[messageIndex % VIDEO_GENERATION_MESSAGES.length]);
-        messageIndex++;
+      operation = await pollOperation(operation);
+
+      const initialState = operation.response?.generatedVideos?.[0]?.video?.state;
+      if (initialState !== 'SUCCEEDED') {
+          const failureReason = operation.error?.message || `Video processing failed with state: ${initialState}`;
+          throw new Error(`INITIAL SEGMENT FAILED: ${failureReason}`);
       }
       
       let currentVideo = operation.response?.generatedVideos?.[0]?.video;
@@ -92,11 +105,12 @@ export const useVeo = () => {
           params.aspectRatio,
         );
 
-        while (!operation.done) {
-          if (!isMounted.current) return;
-          await new Promise(resolve => setTimeout(resolve, 8000));
-          operation = await checkVideoOperationStatus(operation);
-          if (!isMounted.current) return;
+        operation = await pollOperation(operation);
+        
+        const extendedState = operation.response?.generatedVideos?.[0]?.video?.state;
+        if (extendedState !== 'SUCCEEDED') {
+            const failureReason = operation.error?.message || `Video extension failed with state: ${extendedState}`;
+            throw new Error(`EXTENSION SEGMENT FAILED: ${failureReason}`);
         }
 
         currentVideo = operation.response?.generatedVideos?.[0]?.video;
@@ -127,7 +141,21 @@ export const useVeo = () => {
                 } catch (e) {
                     errorMessage = '!! QUOTA EXHAUSTED !!\nYOU HAVE SURPASSED THE VIDEO GENERATION LIMIT FOR YOUR CURRENT PLAN. PLEASE CHECK YOUR BILLING DETAILS OR WAIT FOR THE QUOTA TO RESET.';
                 }
+            } else if (errorMessage.toLowerCase().includes('invalid_argument')) {
+                try {
+                    const errorJsonMatch = errorMessage.match(/{.*}/);
+                    if (errorJsonMatch) {
+                        const errorObj = JSON.parse(errorJsonMatch[0]);
+                        const detailedMessage = errorObj?.ERROR?.MESSAGE || errorObj?.error?.message || 'The video segment for extension is invalid.';
+                        errorMessage = `!! INVALID ARGUMENT !!\n${detailedMessage.toUpperCase()}`;
+                    } else {
+                         errorMessage = `!! INVALID ARGUMENT !!\n${errorMessage.toUpperCase()}`;
+                    }
+                } catch (e) {
+                    errorMessage = `!! INVALID ARGUMENT !!\nTHE PREVIOUSLY GENERATED VIDEO SEGMENT COULD NOT BE USED FOR EXTENSION. PLEASE TRY AGAIN. RAW: ${errorMessage}`;
+                }
             }
+
 
             setError(errorMessage);
             handleApiError(err, 'gemini_pro');
@@ -139,7 +167,7 @@ export const useVeo = () => {
             stopTimer();
         }
     }
-  }, [handleApiError]);
+  }, [handleApiError, pollOperation]);
 
   return { isLoading, error, resultUrl, progressMessage, estimatedTimeRemaining, generateVideo };
 };
