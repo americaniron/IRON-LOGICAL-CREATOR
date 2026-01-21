@@ -1,17 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Message } from '../types';
+import { Message, Task } from '../types';
 import { generateChatResponse } from '../services/geminiService';
 import { Send, User, Bot, Download } from './common/Icons';
 import Spinner from './common/Spinner';
 import { useMountedState } from '../hooks/useMountedState';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useAppContext } from '../context/AppContext';
 
 const SUGGESTIONS = ["ANALYZE PRODUCTION EFFICIENCY", "GENERATE STORYBOARD FOR SCI-FI SHORT", "CALIBRATE MULTIMEDIA WORKFLOW"];
 
 const ChatPanel: React.FC = () => {
-  const [messages, setMessages] = useLocalStorage<Message[]>('im_chat_history_gemini', [
-    { id: '1', text: "OPERATIONS ONLINE. LOGGING IN AS COMMANDER. STATE YOUR FABRICATION REQUIREMENTS.", sender: 'bot' }
-  ]);
+  const { chatHistories, addMessage } = useAppContext();
+  const messages = chatHistories[Task.Chat] || [];
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useMountedState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,25 +38,21 @@ const ChatPanel: React.FC = () => {
     const textToSend = overrideInput || input;
     if (textToSend.trim() === '' || isLoading) return;
 
-    const userMessage: Message = { id: Date.now().toString(), text: textToSend, sender: 'user' };
-    setMessages(prev => [...prev, userMessage]);
+    await addMessage(Task.Chat, { id: Date.now().toString(), text: textToSend, sender: 'user' });
     setInput('');
     setIsLoading(true);
 
-    const botTypingMessage: Message = { id: (Date.now() + 1).toString(), text: '', sender: 'bot', isTyping: true };
-    setMessages(prev => [...prev, botTypingMessage]);
+    await addMessage(Task.Chat, { id: (Date.now() + 1).toString(), text: '', sender: 'bot', isTyping: true });
 
     try {
       const response = await generateChatResponse(textToSend);
-      const botMessage: Message = { id: (Date.now() + 2).toString(), text: response.toUpperCase(), sender: 'bot' };
-      setMessages(prev => prev.filter(m => !m.isTyping).concat(botMessage));
+      await addMessage(Task.Chat, { id: (Date.now() + 2).toString(), text: response.toUpperCase(), sender: 'bot' });
     } catch (error) {
-      const errorMessage: Message = { id: (Date.now() + 2).toString(), text: 'CRITICAL ERROR: SIGNAL LOST. RETRY COMM LINK.', sender: 'bot' };
-      setMessages(prev => prev.filter(m => !m.isTyping).concat(errorMessage));
+      await addMessage(Task.Chat, { id: (Date.now() + 2).toString(), text: 'CRITICAL ERROR: SIGNAL LOST. RETRY COMM LINK.', sender: 'bot' });
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, setMessages, setIsLoading]);
+  }, [input, isLoading, addMessage, setIsLoading]);
 
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto control-panel p-4 sm:p-6 relative">
@@ -99,7 +94,7 @@ const ChatPanel: React.FC = () => {
       </div>
 
       <div className="mt-4 sm:mt-8 pt-4 sm:pt-6 border-t-4 border-[var(--border-primary)]">
-        {messages.length === 1 && (
+        {messages.length <= 1 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {SUGGESTIONS.map(s => (
               <button 

@@ -193,22 +193,21 @@ export const getChatHistories = async (): Promise<Record<Task, Message[]>> => {
     
     const histories = db.chats(session.id);
     // Ensure default histories exist
-    // FIX: Explicitly type `defaultHistories` to match the `Message` interface, specifically the `sender` property.
     const defaultHistories: Record<Task.Chat | Task.OpenAIChat | Task.GrokChat, Message[]> = {
         [Task.Chat]: [{ id: '1', text: "OPERATIONS ONLINE. STATE YOUR FABRICATION REQUIREMENTS.", sender: 'bot' }],
         [Task.OpenAIChat]: [{ id: '1', text: "GUEST SYSTEM ONLINE. GPT-CLASS MODEL READY.", sender: 'bot' }],
         [Task.GrokChat]: [{ id: '1', text: "GROK_CONDUIT ACTIVE. WHAT'S THE MISSION?", sender: 'bot' }]
     };
 
-    // FIX: The returned object must satisfy Record<Task, Message[]>.
-    // Initialize all possible tasks with empty arrays, then merge actual histories and defaults.
+    // Initialize all possible tasks with empty arrays to conform to the type.
     const fullHistory = Object.fromEntries(
         Object.values(Task).map(task => [task, []])
     ) as Record<Task, Message[]>;
 
     return {
-        ...fullHistory,
-        ...histories,
+        ...fullHistory, // Ensures all keys from the Task enum are present
+        ...histories, // Overwrites with persisted histories
+        // Ensures defaults are present if no history exists for these specific chats
         [Task.Chat]: histories[Task.Chat] || defaultHistories[Task.Chat],
         [Task.OpenAIChat]: histories[Task.OpenAIChat] || defaultHistories[Task.OpenAIChat],
         [Task.GrokChat]: histories[Task.GrokChat] || defaultHistories[Task.GrokChat],
@@ -222,12 +221,9 @@ export const addMessage = async (task: Task.Chat | Task.OpenAIChat | Task.GrokCh
     const userChats = await getChatHistories();
     const history = userChats[task] || [];
     
-    // Handle replacing "typing" indicator
-    const existingTyping = history.findIndex(m => m.isTyping);
-    if(existingTyping !== -1) {
-        history.splice(existingTyping, 1);
-    }
-    const updatedHistory = [...history, message];
+    // Filter out any existing "typing" indicators before adding the new message.
+    const updatedHistory = history.filter(m => !m.isTyping);
+    updatedHistory.push(message);
 
     userChats[task] = updatedHistory;
     db.saveChats(session.id, userChats);

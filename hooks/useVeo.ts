@@ -117,7 +117,18 @@ export const useVeo = () => {
       }
     } catch (err) {
         if (isMounted.current) {
-            const errorMessage = err instanceof Error ? err.message : 'UNEXPECTED SYSTEM CRASH.';
+            let errorMessage = err instanceof Error ? err.message : 'UNEXPECTED SYSTEM CRASH.';
+
+            if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('resource_exhausted')) {
+                try {
+                    const errorObj = JSON.parse(errorMessage);
+                    const detailedMessage = errorObj?.error?.message || 'Rate limit or quota exceeded.';
+                    errorMessage = `!! QUOTA EXHAUSTED !!\n${detailedMessage.toUpperCase()}`;
+                } catch (e) {
+                    errorMessage = '!! QUOTA EXHAUSTED !!\nYOU HAVE SURPASSED THE VIDEO GENERATION LIMIT FOR YOUR CURRENT PLAN. PLEASE CHECK YOUR BILLING DETAILS OR WAIT FOR THE QUOTA TO RESET.';
+                }
+            }
+
             setError(errorMessage);
             handleApiError(err, 'gemini_pro');
         }

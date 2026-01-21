@@ -233,7 +233,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         {error && (
             <div className="text-center space-y-4 p-6 bg-red-900/20 border-2 border-red-500">
                 <p className="text-red-500 font-['Black_Ops_One'] uppercase tracking-widest text-lg">!! FAILURE !!</p>
-                <p className="font-mono text-[8px] text-red-400 uppercase tracking-tighter">{error}</p>
+                <p className="font-mono text-[8px] text-red-400 uppercase tracking-tighter whitespace-pre-wrap">{error}</p>
                 <Button onClick={() => window.location.reload()} variant="danger" className="mx-auto mt-4 !text-[10px] !py-2">RESET</Button>
             </div>
         )}

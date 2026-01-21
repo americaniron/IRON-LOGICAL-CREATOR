@@ -191,7 +191,7 @@ const ImagePanel: React.FC = () => {
         </div>
         
         {isLoading && <Spinner text="CONSTRUCTING PIXELS..." />}
-        {error && <p className="text-red-500 font-mono font-bold text-center border-2 border-red-500 p-6 bg-red-500/10 uppercase tracking-widest text-xs">{error}</p>}
+        {error && <p className="text-red-500 font-mono font-bold text-center border-2 border-red-500 p-6 bg-red-500/10 uppercase tracking-widest text-xs whitespace-pre-wrap">{error}</p>}
         {result && !isLoading && (
           <div className="text-center w-full space-y-4 sm:space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="relative p-1 bg-industrial-gray border-b-4 sm:border-b-8 border-black shadow-2xl">

@@ -377,18 +377,26 @@ export const checkVideoOperationStatus = async (operation: any): Promise<any> =>
 
 export const fetchVideoResult = async (downloadLink: string): Promise<string> => {
     const apiKey = process.env.API_KEY;
-    if(!apiKey) {
-        return downloadLink; // Return raw link if no key, might fail.
+    if (!apiKey) {
+        throw new Error("API KEY NOT FOUND FOR VIDEO DOWNLOAD. PLEASE RE-SELECT KEY.");
     }
     try {
-        const response = await fetch(`${downloadLink}&key=${apiKey}`);
+        const separator = downloadLink.includes('?') ? '&' : '?';
+        const urlToFetch = `${downloadLink}${separator}key=${apiKey}`;
+        const response = await fetch(urlToFetch);
+
         if (!response.ok) {
-            throw new Error(`Failed to fetch video: ${response.statusText}`);
+            console.error("Failed to fetch video resource:", { 
+                status: response.status, 
+                statusText: response.statusText,
+                url: urlToFetch,
+            });
+            throw new Error(`Failed to fetch video resource: ${response.status} ${response.statusText}`);
         }
         const blob = await response.blob();
         return URL.createObjectURL(blob);
     } catch (error) {
-        console.error("Error fetching video result:", error);
+        console.error("Error in fetchVideoResult:", error);
         throw new Error("Could not download the generated video.");
     }
 }
