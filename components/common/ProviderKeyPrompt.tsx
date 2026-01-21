@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Button from './Button';
 import Input from './Input';
-import { BrainCircuit, XIcon } from './Icons';
+import { BrainCircuit, XIcon, Gear } from './Icons';
 import { ApiProvider } from '../../hooks/useApiKeyManager';
 
 interface ProviderInfo {
@@ -18,10 +18,10 @@ const PROVIDER_CONFIG: Record<ApiProvider, ProviderInfo> = {
   openai: {
     Icon: BrainCircuit,
     title: 'OpenAI System Access',
-    description: 'This module requires an OpenAI API key for operation. Your key is stored locally and never sent to our servers.',
+    description: 'This module requires an OpenAI API key. Your key is stored securely and is only used to proxy requests from your account.',
     keyPlaceholder: 'sk-...',
     docsUrl: 'https://platform.openai.com/api-keys',
-    docsLabel: 'Procure_Access_Key_Ref_OAI',
+    docsLabel: 'Procure Access Key (OpenAI)',
     buttonText: 'Authorize System',
   },
   grok: {
@@ -30,16 +30,16 @@ const PROVIDER_CONFIG: Record<ApiProvider, ProviderInfo> = {
     description: 'Authorization required to interface with Grok systems. Or don\'t. See if I care.',
     keyPlaceholder: 'ENTER_API_KEY_ //',
     docsUrl: 'https://x.ai',
-    docsLabel: 'Find_Yours_On_x.ai',
-    buttonText: 'Authorize',
+    docsLabel: 'Find API Key on x.ai',
+    buttonText: 'Authorize Conduit',
   },
   gemini_pro: {
-    Icon: () => <div className="h-5 w-5 bg-heavy-yellow" />,
+    Icon: Gear,
     title: '!! Enterprise Clearance Required !!',
     description: 'This engine requires a valid API Key from a registered Google Cloud project with active billing.',
     docsUrl: 'https://ai.google.dev/gemini-api/docs/billing',
-    docsLabel: 'Review_Billing_Documentation_Ref_402',
-    buttonText: 'Submit Clearance',
+    docsLabel: 'Review Billing Documentation',
+    buttonText: 'Select API Key',
   },
 };
 
@@ -55,17 +55,17 @@ const ProviderKeyPrompt: React.FC<ProviderKeyPromptProps> = ({ provider, onKeySu
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onKeySubmit(key.trim() || 'gemini_pro_dummy_key');
+    onKeySubmit(key.trim() || 'gemini_pro_dummy_key'); // Dummy key for gemini pro just triggers the dialog
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`p-6 relative overflow-hidden group bg-dark-metal border-l-8 border-heavy-yellow`} role="alert">
+    <form onSubmit={handleSubmit} className={`p-6 relative overflow-hidden group bg-[var(--bg-panel)] border-l-8 border-[var(--accent-primary)]`} role="alert" aria-labelledby={`${provider}-title`}>
       <div className="space-y-4">
         <div>
-          <strong className={`font-mono uppercase tracking-[0.2em] block mb-2 flex items-center gap-2 text-heavy-yellow`}>
+          <strong id={`${provider}-title`} className={`font-mono uppercase tracking-[0.2em] block mb-2 flex items-center gap-2 text-[var(--accent-primary)]`}>
             <config.Icon className="h-5 w-5" /> {config.title}
           </strong>
-          <p className="text-sm text-gray-300 font-mono">{config.description}</p>
+          <p className="text-sm text-[var(--text-secondary)] font-mono">{config.description}</p>
         </div>
         
         {config.keyPlaceholder && (
@@ -84,7 +84,7 @@ const ProviderKeyPrompt: React.FC<ProviderKeyPromptProps> = ({ provider, onKeySu
           <Button type="submit" variant={'primary'} className={`text-xs !py-3 !px-6`}>
             {config.buttonText}
           </Button>
-          <a href={config.docsUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center text-[10px] font-mono uppercase underline transition-colors text-gray-500 hover:text-heavy-yellow`}>
+          <a href={config.docsUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center text-[10px] font-mono uppercase underline transition-colors text-[var(--text-muted)] hover:text-[var(--accent-primary)]`}>
             {config.docsLabel}
           </a>
         </div>

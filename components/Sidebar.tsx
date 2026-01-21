@@ -1,12 +1,11 @@
-
 import React, { useRef } from 'react';
 import { Task } from '../types';
-import { MessageSquare, Image, Video, Film, Speaker, Microphone, UploadCloud, BrainCircuit, XIcon, Crane, Gear } from './common/Icons';
+import { MessageSquare, Image, Video, Film, Speaker, Microphone, UploadCloud, BrainCircuit, XIcon, Crane, Gear, Sun, Moon } from './common/Icons';
 import { useAppContext } from '../context/AppContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const Sidebar: React.FC = () => {
-  const { activeTask, setActiveTask, isSidebarOpen, setIsSidebarOpen, isAdmin, logout } = useAppContext();
+  const { activeTask, setActiveTask, isSidebarOpen, setIsSidebarOpen, isAdmin, logout, theme, toggleTheme } = useAppContext();
   const [customLogo, setCustomLogo] = useLocalStorage<string | null>('im_custom_logo', null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,14 +59,14 @@ const Sidebar: React.FC = () => {
               onClick={() => handleTaskClick(item.id)}
               className={`w-full flex items-center p-3 rounded-none transition-all duration-200 relative overflow-hidden group text-base md:text-lg ${
                 activeTask === item.id
-                  ? `bg-heavy-yellow text-black shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]`
-                  : 'text-gray-500 hover:text-white hover:bg-industrial-gray'
+                  ? `bg-[var(--accent-primary)] text-[var(--text-accent-on)] shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]`
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-primary)]'
               }`}
             >
-              <div className={`absolute top-0 left-0 bottom-0 w-1.5 bg-heavy-yellow transition-transform duration-300 scale-y-0 group-hover:scale-y-100 ${activeTask === item.id ? 'scale-y-100' : ''}`}
-                style={{boxShadow: 'var(--hud-glow)'}}
+              <div className={`absolute top-0 left-0 bottom-0 w-1.5 bg-[var(--accent-primary)] transition-transform duration-300 scale-y-0 group-hover:scale-y-100 ${activeTask === item.id ? 'scale-y-100' : ''}`}
+                style={{boxShadow: 'var(--accent-glow)'}}
               ></div>
-              <div className={`ml-3 mr-4 transition-transform group-hover:scale-110 ${activeTask === item.id ? 'scale-110 text-black' : 'text-heavy-yellow'}`}>
+              <div className={`ml-3 mr-4 transition-transform group-hover:scale-110 ${activeTask === item.id ? 'scale-110 text-[var(--text-accent-on)]' : 'text-[var(--accent-primary)]'}`}>
                 {item.icon}
               </div>
               <span className={`font-['Black_Ops_One'] uppercase tracking-wider`}>
@@ -80,11 +79,11 @@ const Sidebar: React.FC = () => {
     );
 
   return (
-    <nav className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[#1F2328] to-[#111317] border-r-2 border-black flex flex-col shadow-2xl transform transition-transform duration-300 ease-in-out md:relative md:w-80 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-heavy-yellow to-transparent opacity-20"></div>
+    <nav className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)] border-r-2 border-[var(--border-secondary)] flex flex-col shadow-2xl transform transition-transform duration-300 ease-in-out md:relative md:w-80 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-[var(--accent-primary)] to-transparent opacity-20"></div>
       
       {/* BRANDING LOGO SECTION */}
-      <div className="p-4 sm:p-6 flex flex-col items-center border-b-2 border-black bg-black/30 shadow-inner">
+      <div className="p-4 sm:p-6 flex flex-col items-center border-b-2 border-[var(--border-secondary)] bg-black/30 shadow-inner">
         <input 
           type="file" 
           ref={fileInputRef} 
@@ -95,7 +94,7 @@ const Sidebar: React.FC = () => {
         
         <div 
           onClick={triggerUpload}
-          className="w-full max-w-[200px] h-32 mb-4 border-2 border-dashed border-industrial-gray hover:border-heavy-yellow transition-colors cursor-pointer flex flex-col items-center justify-center bg-asphalt relative group overflow-hidden"
+          className="w-full max-w-[200px] h-32 mb-4 border-2 border-dashed border-[var(--border-primary)] hover:border-[var(--accent-primary)] transition-colors cursor-pointer flex flex-col items-center justify-center bg-[var(--bg-primary)] relative group overflow-hidden"
         >
           {customLogo ? (
             <>
@@ -105,11 +104,11 @@ const Sidebar: React.FC = () => {
                 className="w-full h-full object-contain p-2 grayscale group-hover:grayscale-0 transition-all duration-500"
               />
               <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <p className="font-['Black_Ops_One'] text-sm font-bold text-heavy-yellow uppercase tracking-widest">REPLACE</p>
+                <p className="font-['Black_Ops_One'] text-sm font-bold text-[var(--accent-primary)] uppercase tracking-widest">REPLACE</p>
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center text-gray-600 group-hover:text-heavy-yellow transition-colors">
+            <div className="flex flex-col items-center text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors">
               <UploadCloud className="h-10 w-10 mb-2" />
               <p className="text-[10px] font-mono uppercase tracking-widest text-center px-2">UPLOAD_LOGO</p>
             </div>
@@ -119,9 +118,9 @@ const Sidebar: React.FC = () => {
         </div>
         
         <div className="text-center american-iron-font">
-          <p className="text-xs font-black text-heavy-yellow tracking-[0.4em] uppercase mb-1">IRON</p>
-          <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter">MEDIA</h1>
-          <p className="text-[9px] font-mono text-gray-500 tracking-widest mt-3 uppercase border-t border-industrial-gray pt-2">SITE_ORCHESTRATOR</p>
+          <p className="text-xs font-black text-[var(--accent-primary)] tracking-[0.4em] uppercase mb-1">IRON</p>
+          <h1 className="text-5xl md:text-6xl font-black text-[var(--text-primary)] tracking-tighter">MEDIA</h1>
+          <p className="text-[9px] font-mono text-[var(--text-muted)] tracking-widest mt-3 uppercase border-t border-[var(--border-primary)] pt-2">SITE_ORCHESTRATOR</p>
         </div>
       </div>
 
@@ -130,7 +129,7 @@ const Sidebar: React.FC = () => {
             <div className="mb-4">
                 <button
                 onClick={() => handleTaskClick(Task.AdminPanel)}
-                className={`w-full flex items-center p-3 border-2 border-heavy-yellow bg-heavy-yellow/10 text-heavy-yellow hover:bg-heavy-yellow hover:text-black transition-all ${activeTask === Task.AdminPanel ? 'bg-heavy-yellow text-black font-black' : ''}`}
+                className={`w-full flex items-center p-3 border-2 border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-[var(--text-accent-on)] transition-all ${activeTask === Task.AdminPanel ? 'bg-[var(--accent-primary)] text-[var(--text-accent-on)] font-black' : ''}`}
                 >
                     <Gear className={`h-5 w-5 mr-3 ${activeTask === Task.AdminPanel ? 'animate-spin' : ''}`} />
                     <span className="font-['Black_Ops_One'] uppercase tracking-widest">ADMIN COMMAND</span>
@@ -139,14 +138,14 @@ const Sidebar: React.FC = () => {
         )}
 
         <div>
-          <h2 className="px-4 pb-2 text-xs font-mono text-gray-600 uppercase tracking-[0.3em] border-b border-industrial-gray">Iron Media (Gemini)</h2>
+          <h2 className="px-4 pb-2 text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.3em] border-b border-[var(--border-primary)]">Iron Media (Gemini)</h2>
           <div className="mt-2">
             <NavList items={geminiNavItems} />
           </div>
         </div>
         <div>
-          <h2 className="px-4 pb-2 text-xs font-mono text-gray-600 uppercase tracking-[0.3em] border-b border-industrial-gray flex items-center gap-2">
-            <BrainCircuit className="h-4 w-4 text-gray-500" />
+          <h2 className="px-4 pb-2 text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.3em] border-b border-[var(--border-primary)] flex items-center gap-2">
+            <BrainCircuit className="h-4 w-4 text-[var(--text-secondary)]" />
             Guest Systems (OpenAI)
           </h2>
           <div className="mt-2">
@@ -154,8 +153,8 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
         <div>
-          <h2 className="px-4 pb-2 text-xs font-mono text-gray-600 uppercase tracking-[0.3em] border-b border-industrial-gray flex items-center gap-2">
-            <XIcon className="h-4 w-4 text-gray-500" />
+          <h2 className="px-4 pb-2 text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.3em] border-b border-[var(--border-primary)] flex items-center gap-2">
+            <XIcon className="h-4 w-4 text-[var(--text-secondary)]" />
             X-Corp Systems (Grok)
           </h2>
           <div className="mt-2">
@@ -165,13 +164,23 @@ const Sidebar: React.FC = () => {
       </div>
 
 
-      <div className="p-4 border-t-2 border-black bg-black/30">
+      <div className="p-4 border-t-2 border-[var(--border-secondary)] bg-black/30">
         <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-heavy-yellow animate-pulse"></div>
-            <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">SYSTEM: <span className="text-heavy-yellow">NOMINAL</span></p>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-[var(--accent-primary)] animate-pulse"></div>
+                    <p className="text-xs font-mono text-[var(--text-secondary)] uppercase tracking-widest">SYSTEM: <span className="text-[var(--accent-primary)]">NOMINAL</span></p>
+                </div>
+                <button 
+                  onClick={toggleTheme} 
+                  className="p-1.5 bg-[var(--border-primary)] text-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-[var(--text-accent-on)] transition-colors border border-[var(--border-secondary)]" 
+                  title="Toggle Theme"
+                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                >
+                    {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
             </div>
-            <button onClick={logout} className="text-[10px] font-mono text-red-500 hover:text-white uppercase tracking-wider text-left hover:underline">
+            <button onClick={logout} className="text-[10px] font-mono text-red-500 hover:text-[var(--text-primary)] uppercase tracking-wider text-left hover:underline">
                 [ Terminate_Session ]
             </button>
         </div>

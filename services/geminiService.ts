@@ -48,12 +48,6 @@ const fileToGenerativePart = async (file: File) => {
   };
 };
 
-// --- Mock Implementations ---
-const mockWait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const MOCK_CHAT_RESPONSE = "OPERATIONS ACKNOWLEDGED. GENERATING STRUCTURAL BLUEPRINTS FOR YOUR MULTIMEDIA ASSETS. STANDBY FOR FABRICATION COMMENCEMENT.";
-const MOCK_IMAGE_URL = "https://picsum.photos/seed/industrial/1024/1024";
-const MOCK_VIDEO_URL = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
 // --- Base64 and Audio Utilities ---
 export function encode(bytes: Uint8Array) {
     let binary = '';
@@ -159,6 +153,7 @@ function bufferToWave(abuffer: AudioBuffer): Blob {
 export const downloadAsset = async (url: string, filename: string) => {
   try {
     const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const blob = await response.blob();
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -170,7 +165,7 @@ export const downloadAsset = async (url: string, filename: string) => {
     URL.revokeObjectURL(blobUrl);
   } catch (error) {
     console.error("Asset export failed:", error);
-    // Fallback for simple link opening if blob fetch fails
+    // Fallback for simple link opening if blob fetch fails, e.g., due to CORS on external URLs
     window.open(url, '_blank');
   }
 };
@@ -205,10 +200,7 @@ export const connectLiveSession = (callbacks: {
 
 export const generateChatResponse = async (prompt: string): Promise<string> => {
   const ai = getAI();
-  if (!ai) {
-    await mockWait(1000);
-    return MOCK_CHAT_RESPONSE;
-  }
+  if (!ai) throw new Error("!! CRITICAL: CORE_AI_OFFLINE. CHECK_GEMINI_KEY. !!");
   
   try {
     const chat = ai.chats.create({ 
@@ -229,10 +221,7 @@ export const generateChatResponse = async (prompt: string): Promise<string> => {
 
 export const generateImage = async (prompt: string, negativePrompt: string, aspectRatio: string, model: string, useGoogleSearch: boolean, resolution?: string, seed?: number): Promise<string> => {
   const ai = getAI();
-  if (!ai) {
-    await mockWait(2500);
-    return MOCK_IMAGE_URL;
-  }
+  if (!ai) throw new Error("!! CRITICAL: FAB_SHOP_OFFLINE. CHECK_GEMINI_KEY. !!");
 
   try {
     const config: any = {
@@ -271,16 +260,13 @@ export const generateImage = async (prompt: string, negativePrompt: string, aspe
     throw new Error("No image data found in response.");
   } catch (error) {
     console.error("Error generating image:", error);
-    throw new Error("Failed to generate image with Gemini.");
+    throw error;
   }
 };
 
 export const generateSpeech = async (text: string, voice: string): Promise<string> => {
     const ai = getAI();
-    if (!ai) {
-      await mockWait(1500);
-      throw new Error("!! ACCESS DENIED: PA_SYSTEM REQUIRES API_KEY CLEARANCE. !!");
-    }
+    if (!ai) throw new Error("!! ACCESS DENIED: PA_SYSTEM REQUIRES API_KEY CLEARANCE. !!");
   
     try {
       const response = await ai.models.generateContent({
@@ -324,10 +310,7 @@ export const startVideoGeneration = async (
   imageFile?: File
 ): Promise<any> => {
   const ai = getAI();
-  if (!ai) {
-    await mockWait(1000);
-    return { done: false, name: 'mock_operation_123' };
-  }
+  if (!ai) throw new Error("!! CRITICAL: VEO_ENGINE_OFFLINE. CHECK_GEMINI_KEY. !!");
   
   const imagePart = imageFile ? await fileToGenerativePart(imageFile) : undefined;
 
@@ -342,26 +325,23 @@ export const startVideoGeneration = async (
         numberOfVideos: 1,
         resolution: resolution as '720p' | '1080p',
         aspectRatio: aspectRatio as '16:9' | '9:16',
+        temperature: 0.2,
       }
     });
     return operation;
   } catch(error) {
     console.error("Error starting video generation:", error);
-    throw new Error("Failed to start video generation with Veo.");
+    throw error;
   }
 };
 
 export const extendVideoGeneration = async (
   prompt: string,
   previousVideo: any,
-  aspectRatio: string,
-  resolution: string
+  aspectRatio: string
 ): Promise<any> => {
   const ai = getAI();
-  if (!ai) {
-    await mockWait(2000);
-    return { done: false, name: 'mock_operation_ext_' + Date.now() };
-  }
+  if (!ai) throw new Error("!! CRITICAL: VEO_EXTENSION_RIG_OFFLINE. CHECK_GEMINI_KEY. !!");
 
   try {
     const extensionPrompt = "SYSTEM_DIRECTIVE: EXTEND THE STORYBOARD FLUIDLY. ADHERE TO PREVIOUS FRAME CONTINUITY. DIRECTIVE: " + prompt;
@@ -373,43 +353,32 @@ export const extendVideoGeneration = async (
         numberOfVideos: 1,
         resolution: '720p', // Extension requires 720p
         aspectRatio: aspectRatio as '16:9' | '9:16',
+        temperature: 0.2,
       }
     });
     return operation;
   } catch (error) {
     console.error("Error extending video generation:", error);
-    throw new Error("Failed to extend video generation with Veo.");
+    throw error;
   }
 };
 
 export const checkVideoOperationStatus = async (operation: any): Promise<any> => {
     const ai = getAI();
-    if (!ai) {
-        await mockWait(8000); 
-        const isDone = Math.random() > 0.4;
-        if (isDone) {
-            return { 
-                done: true, 
-                response: { 
-                    generatedVideos: [{ video: { uri: MOCK_VIDEO_URL } }] 
-                } 
-            };
-        }
-        return { done: false, name: operation.name };
-    }
+    if (!ai) throw new Error("!! CRITICAL: OPERATION_STATUS_LINK_OFFLINE. CHECK_GEMINI_KEY. !!");
 
     try {
         return await ai.operations.getVideosOperation({ operation: operation });
     } catch(error) {
         console.error("Error checking video operation status:", error);
-        throw new Error("Failed to check video status.");
+        throw error;
     }
 };
 
 export const fetchVideoResult = async (downloadLink: string): Promise<string> => {
     const apiKey = process.env.API_KEY;
     if(!apiKey) {
-        return downloadLink;
+        return downloadLink; // Return raw link if no key, might fail.
     }
     try {
         const response = await fetch(`${downloadLink}&key=${apiKey}`);
@@ -425,9 +394,8 @@ export const fetchVideoResult = async (downloadLink: string): Promise<string> =>
 }
 
 export const upscaleVideo = async (videoUrl: string, strength: string): Promise<string> => {
-    console.log(`Initiating upscale process for asset at ${videoUrl} with strength ${strength}`);
-    await mockWait(5000); // Simulate API call for upscaling
+    console.log(`Simulating upscale process for asset at ${videoUrl} with strength ${strength}`);
+    await new Promise(resolve => setTimeout(resolve, 5000));
     console.log("Upscaling complete.");
-    // In a real scenario, this would return a new URL. For this mock, we return the original.
-    return videoUrl;
+    return videoUrl; // In a real scenario, this would return a new URL.
 };

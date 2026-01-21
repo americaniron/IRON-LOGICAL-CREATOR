@@ -15,7 +15,8 @@ const OpenAIChatPanel: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useMountedState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { apiKey, isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('openai');
+  // FIX: `useApiKeyManager` does not return `apiKey`. The key is handled by the backend service.
+  const { isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('openai');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -26,7 +27,8 @@ const OpenAIChatPanel: React.FC = () => {
   }, [messages]);
 
   const handleSend = useCallback(async () => {
-    if (input.trim() === '' || isLoading || !apiKey) return;
+    // FIX: Removed `!apiKey` check as it's not available here and is handled by `isKeyRequired` guard and the backend service.
+    if (input.trim() === '' || isLoading) return;
 
     const userMessage: Message = { id: Date.now().toString(), text: input, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
@@ -37,7 +39,8 @@ const OpenAIChatPanel: React.FC = () => {
     setMessages(prev => [...prev, botTypingMessage]);
 
     try {
-      const response = await generateOpenAIChatResponse(input, apiKey);
+      // FIX: `generateOpenAIChatResponse` does not take an API key as an argument.
+      const response = await generateOpenAIChatResponse(input);
       const botMessage: Message = { id: (Date.now() + 2).toString(), text: response.toUpperCase(), sender: 'bot' };
       setMessages(prev => prev.filter(m => !m.isTyping).concat(botMessage));
     } catch (error) {
@@ -50,7 +53,8 @@ const OpenAIChatPanel: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, apiKey, setMessages, setIsLoading, resetKey]);
+    // FIX: Removed `apiKey` from dependency array as it's no longer used.
+  }, [input, isLoading, setMessages, setIsLoading, resetKey]);
 
   if (!isReady) {
     return <div className="flex items-center justify-center h-full"><Spinner text="INITIALIZING GUEST SYSTEMS..." /></div>;

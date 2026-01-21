@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { startVideoGeneration, extendVideoGeneration, checkVideoOperationStatus, fetchVideoResult } from '../services/geminiService';
 import { VIDEO_GENERATION_MESSAGES } from '../constants';
+import { useAppContext } from '../context/AppContext';
 
 interface GenerateVideoParams {
   prompt: string;
@@ -12,6 +13,7 @@ interface GenerateVideoParams {
 }
 
 export const useVeo = () => {
+  const { handleApiError } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -41,14 +43,13 @@ export const useVeo = () => {
     setEstimatedTimeRemaining(null);
   };
   
-  const generateVideo = useCallback(async (params: GenerateVideoParams, resetKeySelection: () => void) => {
+  const generateVideo = useCallback(async (params: GenerateVideoParams) => {
     if (!isMounted.current) return;
     setIsLoading(true);
     setError(null);
     setResultUrl(null);
     setProgressMessage("CALIBRATING PRODUCTION RIG...");
     
-    // Estimate baseline: ~60s for initial generation, ~45s per extension
     const baseEstimate = 60;
     const extensionEstimate = Math.ceil((params.duration - 8) / 7) * 45;
     startTimer(baseEstimate + (extensionEstimate > 0 ? extensionEstimate : 0));
@@ -56,13 +57,8 @@ export const useVeo = () => {
     try {
       const requiresExtension = params.duration > 8;
       const generationModel = requiresExtension ? 'veo-3.1-generate-preview' : params.model;
-      
-      // CRITICAL FIX: Extension logic requires the input video to be 720p.
-      // We force 720p if extension is required OR if the enterprise model is explicitly used, 
-      // as it is the only one that can handle the subsequent extension steps.
       const effectiveResolution = (requiresExtension || params.model === 'veo-3.1-generate-preview') ? '720p' : params.resolution;
 
-      // 1. Initial Step (Generates the first 8s segment)
       let operation = await startVideoGeneration(
         params.prompt,
         params.aspectRatio,
@@ -84,19 +80,16 @@ export const useVeo = () => {
       let currentVideo = operation.response?.generatedVideos?.[0]?.video;
       let currentDuration = 8; 
 
-      // 2. Extension Loop (Adds 7s segments until target duration is reached)
       while (currentDuration < params.duration && requiresExtension) {
         if (!isMounted.current) return;
         if (!currentVideo) throw new Error("SEQUENCE CONTINUITY ERROR.");
 
         setProgressMessage(`FABRICATING SEGMENT: ${currentDuration}s - ${Math.min(currentDuration + 7, params.duration)}s...`);
         
-        // Extensions MUST be 720p and the input video MUST have been 720p.
         operation = await extendVideoGeneration(
           params.prompt,
           currentVideo,
           params.aspectRatio,
-          '720p'
         );
 
         while (!operation.done) {
@@ -126,9 +119,7 @@ export const useVeo = () => {
         if (isMounted.current) {
             const errorMessage = err instanceof Error ? err.message : 'UNEXPECTED SYSTEM CRASH.';
             setError(errorMessage);
-            if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('403') || errorMessage.includes('Requested entity was not found')) {
-                resetKeySelection();
-            }
+            handleApiError(err, 'gemini_pro');
         }
     } finally {
         if (isMounted.current) {
@@ -137,7 +128,7 @@ export const useVeo = () => {
             stopTimer();
         }
     }
-  }, []);
+  }, [handleApiError]);
 
   return { isLoading, error, resultUrl, progressMessage, estimatedTimeRemaining, generateVideo };
 };

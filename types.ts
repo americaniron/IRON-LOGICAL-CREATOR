@@ -1,4 +1,3 @@
-
 export enum Task {
   Chat = 'chat',
   TextToImage = 't2i',
@@ -13,7 +12,7 @@ export enum Task {
   GrokChat = 'grok_chat',
   GrokTextToImage = 'grok_t2i',
   GrokTextToVideo = 'grok_t2v',
-  AdminPanel = 'admin_panel', // New Task
+  AdminPanel = 'admin_panel',
 }
 
 export interface Message {
@@ -50,7 +49,6 @@ export interface Asset {
   timestamp: number;
 }
 
-// New Interfaces for Auth
 export interface AccessRequest {
     id: string;
     name: string;
@@ -61,7 +59,12 @@ export interface AccessRequest {
 }
 
 export interface UserAccount {
+    id: string;
     name: string;
     pin: string;
     role: 'admin' | 'user';
+}
+
+export interface UserSession extends Omit<UserAccount, 'pin'> {
+    token: string;
 }
