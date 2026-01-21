@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>IRON MEDIA - Site Orchestrator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Inter:wght@400;700;900&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Black_Ops_One&family=Inter:wght@400;700;900&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script type="importmap">
 {
   "imports": {
@@ -19,66 +19,62 @@
 </script>
 <style>
   :root {
-    /* Base Colors (Dark Theme) */
-    --heavy-yellow-base: #FFD300;
-    --dark-text-base: #000000;
-    --industrial-gray-base: #333333;
-    --dark-metal-base: #1a1a1a;
-    --asphalt-base: #0a0a0a;
+    /* Industrial Color Palette */
+    --heavy-yellow: #FFD300;
+    --hazard-orange: #FF6B00;
+    --industrial-black: #0F1115;
+    --structural-gray: #2D2E30;
+    --asphalt-gray: #1B1D20;
+    --steel-border: #3F4042;
+    --lcd-text: #EBB700;
 
     /* Theme-aware variables */
-    --bg-primary: var(--asphalt-base);
-    --bg-secondary: var(--dark-metal-base);
-    --bg-tertiary: black;
-    --bg-panel: var(--dark-metal-base);
-    --bg-input: var(--asphalt-base);
-    --bg-overlay: rgba(10, 10, 10, 0.98);
-    --bg-gradient-start: #1F2328;
-    --bg-gradient-end: #111317;
+    --bg-primary: var(--industrial-black);
+    --bg-secondary: var(--asphalt-gray);
+    --bg-tertiary: #050505;
+    --bg-panel: var(--structural-gray);
+    --bg-input: #08090A;
+    --bg-overlay: rgba(15, 17, 21, 0.98);
+    --bg-gradient-start: #24272D;
+    --bg-gradient-end: #0F1115;
 
-    --text-primary: #e5e7eb; /* gray-200 */
-    --text-secondary: #9ca3af; /* gray-400 */
-    --text-muted: #6b7280; /* gray-500 */
-    --text-inverted: var(--dark-text-base);
-    --text-accent-on: var(--dark-text-base);
+    --text-primary: #F0F0F0;
+    --text-secondary: #B0B3B8;
+    --text-muted: #62656A;
+    --text-inverted: black;
+    --text-accent: var(--heavy-yellow);
 
-    --border-primary: var(--industrial-gray-base);
+    --border-primary: var(--steel-border);
     --border-secondary: black;
 
-    --accent-primary: var(--heavy-yellow-base);
-    --accent-glow: 0 0 8px var(--accent-primary);
+    --accent-primary: var(--heavy-yellow);
+    --accent-glow: 0 0 12px rgba(255, 211, 0, 0.3);
 
-    --danger-primary: #DC2626;
+    --danger-primary: #EF4444;
     --danger-secondary: #991B1B;
-    --danger-text: white;
   }
 
   html.light-theme {
-    /* Light Theme Overrides */
-    --bg-primary: #E9E9E9;
-    --bg-secondary: #F5F5F5;
+    --bg-primary: #E2E4E7;
+    --bg-secondary: #D1D5DB;
     --bg-tertiary: #FFFFFF;
-    --bg-panel: #FFFFFF;
-    --bg-input: #E5E7EB; /* gray-200 */
-    --bg-overlay: rgba(245, 245, 245, 0.98);
+    --bg-panel: #F3F4F6;
+    --bg-input: #FFFFFF;
+    --bg-overlay: rgba(226, 228, 231, 0.95);
     --bg-gradient-start: #FFFFFF;
-    --bg-gradient-end: #E9E9E9;
+    --bg-gradient-end: #E2E4E7;
 
-    --text-primary: #111827; /* gray-900 */
-    --text-secondary: #374151; /* gray-700 */
-    --text-muted: #6B7280; /* gray-500 */
+    --text-primary: #111827;
+    --text-secondary: #374151;
+    --text-muted: #9CA3AF;
     --text-inverted: #FFFFFF;
-    --text-accent-on: #111827;
+    --text-accent: #D97706;
 
-    --border-primary: #D1D5DB; /* gray-300 */
-    --border-secondary: #9CA3AF; /* gray-400 */
+    --border-primary: #9CA3AF;
+    --border-secondary: #4B5563;
     
-    --accent-primary: #F59E0B; /* amber-500 */
-    --accent-glow: 0 0 8px var(--accent-primary);
-    
-    --danger-primary: #EF4444; /* red-500 */
-    --danger-secondary: #B91C1C; /* red-700 */
-    --danger-text: white;
+    --accent-primary: #F59E0B;
+    --accent-glow: 0 0 8px rgba(245, 158, 11, 0.2);
   }
 
   body {
@@ -88,92 +84,110 @@
     background-image: 
       linear-gradient(var(--bg-overlay), var(--bg-overlay)),
       url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-    transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    height: 100dvh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
   }
+
+  #root {
+    height: 100%;
+    width: 100%;
+  }
+
   .blueprint-grid {
-    background-size: 50px 50px;
+    background-size: 40px 40px;
     background-image:
-      linear-gradient(to right, hsla(51, 100%, 50%, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, hsla(51, 100%, 50%, 0.05) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255, 211, 0, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 211, 0, 0.05) 1px, transparent 1px);
+    position: relative;
   }
-  html.light-theme .blueprint-grid {
-      background-image:
-      linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+
+  .blueprint-grid::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
   }
+
   .caution-stripes {
     background: repeating-linear-gradient(
       -45deg,
-      rgba(0,0,0,0.7),
-      rgba(0,0,0,0.7) 10px,
-      var(--accent-primary) 10px,
-      var(--accent-primary) 20px
+      #000,
+      #000 12px,
+      var(--accent-primary) 12px,
+      var(--accent-primary) 24px
     );
   }
+
   .rivet {
-    /* Style is fine for both themes */
+    width: 6px;
+    height: 6px;
+    background: #555;
+    border-radius: 50%;
+    box-shadow: inset 1px 1px 1px #000, 1px 1px 1px #888;
   }
+
   .control-panel {
     background-color: var(--bg-panel);
-    border: 1px solid var(--border-primary);
+    border: 3px solid var(--border-primary);
     box-shadow: 
-      inset 0 0 20px rgba(0,0,0,0.7), 
-      0 0 15px rgba(0,0,0,0.5);
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+      0 10px 30px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    position: relative;
   }
-  html.light-theme .control-panel {
-    box-shadow: 
-      inset 0 0 10px rgba(0,0,0,0.1), 
-      0 4px 15px rgba(0,0,0,0.1);
+
+  @media (max-width: 640px) {
+    .control-panel {
+      border-width: 2px;
+    }
   }
+
   .monitor-screen {
-    background-color: var(--bg-tertiary);
-    border: 4px solid var(--border-primary);
+    background-color: #050505;
+    border: 4px solid #1a1a1a;
     box-shadow: 
-        inset 0 0 80px rgba(0,0,0,0.8),
-        0 0 2px var(--accent-primary);
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+        inset 0 0 100px rgba(0,0,0,1),
+        0 0 0 2px var(--border-primary);
+    position: relative;
+    overflow: hidden;
   }
-  html.light-theme .monitor-screen {
-     box-shadow: 
-        inset 0 0 40px rgba(0,0,0,0.1),
-        0 0 1px var(--accent-primary);
+
+  .monitor-screen::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    z-index: 5;
   }
-  .american-iron-font {
-    font-family: 'Inter', sans-serif;
-    letter-spacing: -0.05em;
-    line-height: 0.8;
+
+  .industrial-btn {
+    font-family: 'Black Ops One', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.1s ease;
   }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: var(--accent-primary) var(--bg-secondary);
   }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-  }
+  
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: var(--bg-secondary); }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: var(--accent-primary);
-    border-radius: 0px;
     border: 2px solid var(--bg-secondary);
   }
 
-  /* Animations for tailwindcss-animate */
-  @keyframes enter-fade-zoom {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+  @keyframes load-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
-  .animate-in { animation: enter-fade-zoom 0.4s ease-out forwards; }
-  .fade-in { animation: enter-fade-zoom 0.4s ease-out forwards; }
-  .zoom-in-95 { animation: enter-fade-zoom 0.4s ease-out forwards; }
-  .duration-500 { animation-duration: 0.5s; }
-  .duration-700 { animation-duration: 0.7s; }
-  .duration-1000 { animation-duration: 1s; }
 
 </style>
 </head>

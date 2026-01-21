@@ -46,10 +46,23 @@ export const useVeo = () => {
   const pollOperation = useCallback(async (initialOperation: any) => {
       let operation = initialOperation;
       let messageIndex = 1;
+      let retryCount = 0;
+      const MAX_RETRIES = 5;
+
       while (!operation.done) {
           if (!isMounted.current) throw new Error('Operation cancelled: Component unmounted.');
+          
           await new Promise(resolve => setTimeout(resolve, 8000));
-          operation = await checkVideoOperationStatus(operation);
+          
+          try {
+            operation = await checkVideoOperationStatus(operation);
+            retryCount = 0; // Reset on success
+          } catch (pollErr) {
+            console.warn("Polling error encountered, retrying...", pollErr);
+            retryCount++;
+            if (retryCount > MAX_RETRIES) throw pollErr;
+            continue;
+          }
 
           if (!isMounted.current) throw new Error('Operation cancelled: Component unmounted.');
           setProgressMessage(VIDEO_GENERATION_MESSAGES[messageIndex % VIDEO_GENERATION_MESSAGES.length]);
@@ -85,16 +98,16 @@ export const useVeo = () => {
       operation = await pollOperation(operation);
 
       if (operation.error) {
-        throw new Error(`INITIAL SEGMENT FAILED: ${operation.error.message}`);
+        throw new Error(`INITIAL SEGMENT FAILED: ${operation.error.message || 'ENGINE FAILURE'}`);
       }
 
-      const initialState = operation.response?.generatedVideos?.[0]?.video?.state;
-      if (initialState !== 'SUCCEEDED') {
-          const failureReason = `Video processing failed with state: ${initialState || 'UNKNOWN'}`;
-          throw new Error(`INITIAL SEGMENT FAILED: ${failureReason}`);
+      // Check for successful response but missing data (sometimes returned as "UNKNOWN" state in internal logs)
+      let currentVideo = operation.response?.generatedVideos?.[0]?.video;
+      
+      if (!currentVideo?.uri && operation.done) {
+          throw new Error('INITIAL SEGMENT FAILED: Operation finished but no valid asset URI was emitted.');
       }
       
-      let currentVideo = operation.response?.generatedVideos?.[0]?.video;
       let currentDuration = 8; 
 
       while (currentDuration < params.duration && requiresExtension) {
@@ -112,16 +125,15 @@ export const useVeo = () => {
         operation = await pollOperation(operation);
         
         if (operation.error) {
-            throw new Error(`EXTENSION SEGMENT FAILED: ${operation.error.message}`);
+            throw new Error(`EXTENSION SEGMENT FAILED: ${operation.error.message || 'ENGINE FAILURE'}`);
         }
 
-        const extendedState = operation.response?.generatedVideos?.[0]?.video?.state;
-        if (extendedState !== 'SUCCEEDED') {
-            const failureReason = `Video extension failed with state: ${extendedState || 'UNKNOWN'}`;
-            throw new Error(`EXTENSION SEGMENT FAILED: ${failureReason}`);
+        const extendedVideo = operation.response?.generatedVideos?.[0]?.video;
+        if (!extendedVideo?.uri) {
+            throw new Error('EXTENSION SEGMENT FAILED: Operation finished but asset extension was incomplete.');
         }
 
-        currentVideo = operation.response?.generatedVideos?.[0]?.video;
+        currentVideo = extendedVideo;
         currentDuration += 7;
       }
 
@@ -135,37 +147,17 @@ export const useVeo = () => {
           setResultUrl(finalUrl);
         }
       } else {
-        throw new Error('FABRICATION COMPLETE BUT LINK IS NULL.');
+        throw new Error('FABRICATION COMPLETE BUT EXPORT LINK IS NULL.');
       }
     } catch (err) {
         if (isMounted.current) {
             let errorMessage = err instanceof Error ? err.message : 'UNEXPECTED SYSTEM CRASH.';
 
             if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('resource_exhausted')) {
-                try {
-                    const errorObj = JSON.parse(errorMessage);
-                    const detailedMessage = errorObj?.error?.message || 'Rate limit or quota exceeded.';
-                    errorMessage = `!! QUOTA EXHAUSTED !!\n${detailedMessage.toUpperCase()}`;
-                } catch (e) {
-                    errorMessage = '!! QUOTA EXHAUSTED !!\nYOU HAVE SURPASSED THE VIDEO GENERATION LIMIT FOR YOUR CURRENT PLAN. PLEASE CHECK YOUR BILLING DETAILS OR WAIT FOR THE QUOTA TO RESET.';
-                }
-            } else if (errorMessage.toLowerCase().includes('invalid_argument')) {
-                try {
-                    const errorJsonMatch = errorMessage.match(/{.*}/);
-                    if (errorJsonMatch) {
-                        const errorObj = JSON.parse(errorJsonMatch[0]);
-                        const detailedMessage = errorObj?.ERROR?.MESSAGE || errorObj?.error?.message || 'The video segment for extension is invalid.';
-                        errorMessage = `!! INVALID ARGUMENT !!\n${detailedMessage.toUpperCase()}`;
-                    } else {
-                         errorMessage = `!! INVALID ARGUMENT !!\n${errorMessage.toUpperCase()}`;
-                    }
-                } catch (e) {
-                    errorMessage = `!! INVALID ARGUMENT !!\nTHE PREVIOUSLY GENERATED VIDEO SEGMENT COULD NOT BE USED FOR EXTENSION. PLEASE TRY AGAIN. RAW: ${errorMessage}`;
-                }
+                errorMessage = '!! QUOTA EXHAUSTED !!\nSYSTEM HAS REACHED GENERATION LIMITS. PLEASE CHECK BILLING OR WAIT FOR RESET.';
             }
 
-
-            setError(errorMessage);
+            setError(errorMessage.toUpperCase());
             handleApiError(err, 'gemini_pro');
         }
     } finally {

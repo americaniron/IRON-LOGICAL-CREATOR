@@ -2,51 +2,54 @@ import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  variant?: 'primary' | 'danger' | 'warning';
+  variant?: 'primary' | 'danger' | 'warning' | 'secondary';
 }
 
 const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary', ...props }) => {
+  const baseStyles = "industrial-btn relative px-8 py-4 text-lg font-bold transition-all active:translate-y-1 active:shadow-none border-x-4 border-b-8 border-t-2 select-none";
+  
   const variants = {
     primary: `
-      bg-gradient-to-b from-[#FFD300] to-[#C7A600] 
-      text-black border-t-2 border-[#FFF0A3] border-x-2 border-black
-      shadow-[0_6px_0_#856E00,0_8px_15px_rgba(0,0,0,0.6)]
-      hover:from-[#FFF0A3] hover:to-[#FFD300] hover:shadow-[0_6px_0_#A38A00,0_8px_15px_rgba(0,0,0,0.5)]
-      active:shadow-none active:translate-y-[6px]
+      bg-gradient-to-b from-[#FFD300] to-[#EAB308] 
+      text-black border-black border-t-yellow-300
+      shadow-[0_8px_0_#A16207,0_15px_20px_rgba(0,0,0,0.4)]
+      hover:from-yellow-300 hover:to-yellow-500
+    `,
+    secondary: `
+      bg-gradient-to-b from-[#3F4042] to-[#2D2E30] 
+      text-white border-black border-t-gray-500
+      shadow-[0_8px_0_#1a1a1a,0_15px_20px_rgba(0,0,0,0.4)]
+      hover:from-gray-600 hover:to-gray-700
     `,
     danger: `
-      bg-gradient-to-b from-[#DC2626] to-[#991B1B] 
-      text-white border-t-2 border-[#EF4444] border-x-2 border-black
-      shadow-[0_6px_0_#7F1D1D,0_8px_15px_rgba(0,0,0,0.6)]
-      hover:from-[#EF4444] hover:to-[#DC2626] hover:shadow-[0_6px_0_#991B1B,0_8px_15px_rgba(0,0,0,0.5)]
-      active:shadow-none active:translate-y-[6px]
+      bg-gradient-to-b from-[#EF4444] to-[#B91C1C] 
+      text-white border-black border-t-red-400
+      shadow-[0_8px_0_#7F1D1D,0_15px_20px_rgba(0,0,0,0.4)]
+      hover:from-red-400 hover:to-red-600
     `,
     warning: `
       bg-gradient-to-b from-[#F97316] to-[#C2410C] 
-      text-white border-t-2 border-[#FB923C] border-x-2 border-black
-      shadow-[0_6px_0_#9A3412,0_8px_15px_rgba(0,0,0,0.6)]
-      hover:from-[#FB923C] hover:to-[#F97316] hover:shadow-[0_6px_0_#B9500C,0_8px_15px_rgba(0,0,0,0.5)]
-      active:shadow-none active:translate-y-[6px]
+      text-white border-black border-t-orange-400
+      shadow-[0_8px_0_#7C2D12,0_15px_20px_rgba(0,0,0,0.4)]
+      hover:from-orange-400 hover:to-orange-600
     `,
   };
 
   return (
     <button
       className={`
-        px-6 py-3 text-sm 
-        sm:text-base md:px-8 md:py-4 md:text-xl
-        font-['Black_Ops_One'] uppercase tracking-[0.1em] 
-        rounded-none transition-all duration-100 
-        flex items-center justify-center gap-3 
-        disabled:bg-gray-700 disabled:shadow-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:translate-y-[6px]
+        ${baseStyles}
+        disabled:bg-gray-800 disabled:from-gray-800 disabled:to-gray-900 
+        disabled:text-gray-600 disabled:border-gray-950 disabled:shadow-none 
+        disabled:translate-y-1 disabled:cursor-not-allowed
         ${variants[variant as keyof typeof variants]} 
         ${className}
       `}
       {...props}
     >
-      <span className="drop-shadow-[1px_1px_0px_rgba(255,255,255,0.2)]">
+      <div className="flex items-center justify-center gap-3">
         {children}
-      </span>
+      </div>
     </button>
   );
 };

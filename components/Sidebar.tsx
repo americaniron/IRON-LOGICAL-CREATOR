@@ -10,25 +10,25 @@ const Sidebar: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const geminiNavItems = [
-    { id: Task.Chat, icon: <MessageSquare className="h-6 w-6" />, label: 'Control Deck' },
-    { id: Task.LiveConversation, icon: <Microphone className="h-6 w-6" />, label: 'Comm Link' },
-    { id: Task.TextToImage, icon: <Image className="h-6 w-6" />, label: 'Fab Shop' },
-    { id: Task.TextToVideo, icon: <Video className="h-6 w-6" />, label: 'Assembly Line' },
-    { id: Task.ImageToVideo, icon: <Film className="h-6 w-6" />, label: 'VFX Rig' },
-    { id: Task.TextToSpeech, icon: <Speaker className="h-6 w-6" />, label: 'PA System' },
-    { id: Task.AssetBay, icon: <Crane className="h-6 w-6" />, label: 'Asset Bay' },
+    { id: Task.Chat, icon: <MessageSquare className="h-5 w-5" />, label: 'Control Deck' },
+    { id: Task.LiveConversation, icon: <Microphone className="h-5 w-5" />, label: 'Comm Link' },
+    { id: Task.TextToImage, icon: <Image className="h-5 w-5" />, label: 'Fab Shop' },
+    { id: Task.TextToVideo, icon: <Video className="h-5 w-5" />, label: 'Assembly Line' },
+    { id: Task.ImageToVideo, icon: <Film className="h-5 w-5" />, label: 'VFX Rig' },
+    { id: Task.TextToSpeech, icon: <Speaker className="h-5 w-5" />, label: 'PA System' },
+    { id: Task.AssetBay, icon: <Crane className="h-5 w-5" />, label: 'Asset Bay' },
   ];
   
   const openAINavItems = [
-    { id: Task.OpenAIChat, icon: <MessageSquare className="h-6 w-6" />, label: 'GPT Command' },
-    { id: Task.OpenAITextToImage, icon: <Image className="h-6 w-6" />, label: 'DALL-E Forge' },
-    { id: Task.OpenAITextToVideo, icon: <Video className="h-6 w-6" />, label: 'Sora Synthesizer' },
+    { id: Task.OpenAIChat, icon: <MessageSquare className="h-5 w-5" />, label: 'GPT Command' },
+    { id: Task.OpenAITextToImage, icon: <Image className="h-5 w-5" />, label: 'DALL-E Forge' },
+    { id: Task.OpenAITextToVideo, icon: <Video className="h-5 w-5" />, label: 'Sora Synthesizer' },
   ];
 
   const grokNavItems = [
-    { id: Task.GrokChat, icon: <MessageSquare className="h-6 w-6" />, label: 'Grok Conduit' },
-    { id: Task.GrokTextToImage, icon: <Image className="h-6 w-6" />, label: 'X-Forge' },
-    { id: Task.GrokTextToVideo, icon: <Video className="h-6 w-6" />, label: 'X-Motion' },
+    { id: Task.GrokChat, icon: <MessageSquare className="h-5 w-5" />, label: 'Grok Conduit' },
+    { id: Task.GrokTextToImage, icon: <Image className="h-5 w-5" />, label: 'X-Forge' },
+    { id: Task.GrokTextToVideo, icon: <Video className="h-5 w-5" />, label: 'X-Motion' },
   ];
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,28 +48,25 @@ const Sidebar: React.FC = () => {
 
   const handleTaskClick = (task: Task) => {
     setActiveTask(task);
-    setIsSidebarOpen(false); // Close sidebar on mobile after selection
+    setIsSidebarOpen(false);
   };
   
   const NavList = ({ items }: { items: ReadonlyArray<{id: Task, icon: React.ReactNode, label: string}> }) => (
-      <ul className="space-y-2">
+      <ul className="space-y-1">
         {items.map((item) => (
           <li key={item.id}>
             <button
               onClick={() => handleTaskClick(item.id)}
-              className={`w-full flex items-center p-3 rounded-none transition-all duration-200 relative overflow-hidden group text-base md:text-lg ${
+              className={`w-full flex items-center p-3 transition-all duration-75 relative group border-l-4 ${
                 activeTask === item.id
-                  ? `bg-[var(--accent-primary)] text-[var(--text-accent-on)] shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]`
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-primary)]'
+                  ? `bg-[#FFD300] text-black border-black shadow-inner font-bold`
+                  : 'text-gray-400 hover:text-white hover:bg-white/5 border-transparent'
               }`}
             >
-              <div className={`absolute top-0 left-0 bottom-0 w-1.5 bg-[var(--accent-primary)] transition-transform duration-300 scale-y-0 group-hover:scale-y-100 ${activeTask === item.id ? 'scale-y-100' : ''}`}
-                style={{boxShadow: 'var(--accent-glow)'}}
-              ></div>
-              <div className={`ml-3 mr-4 transition-transform group-hover:scale-110 ${activeTask === item.id ? 'scale-110 text-[var(--text-accent-on)]' : 'text-[var(--accent-primary)]'}`}>
+              <div className={`mr-3 transition-transform group-hover:scale-110 ${activeTask === item.id ? 'text-black' : 'text-[#FFD300]'}`}>
                 {item.icon}
               </div>
-              <span className={`font-['Black_Ops_One'] uppercase tracking-wider`}>
+              <span className={`font-['Roboto_Mono'] text-[11px] uppercase tracking-widest`}>
                 {item.label}
               </span>
             </button>
@@ -79,109 +76,93 @@ const Sidebar: React.FC = () => {
     );
 
   return (
-    <nav className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)] border-r-2 border-[var(--border-secondary)] flex flex-col shadow-2xl transform transition-transform duration-300 ease-in-out md:relative md:w-80 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-[var(--accent-primary)] to-transparent opacity-20"></div>
+    <nav className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0F1115] border-r-4 border-black flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.5)] transform transition-transform duration-300 ease-in-out md:relative md:w-80 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       
-      {/* BRANDING LOGO SECTION */}
-      <div className="p-4 sm:p-6 flex flex-col items-center border-b-2 border-[var(--border-secondary)] bg-black/30 shadow-inner">
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/*" 
-          onChange={handleLogoUpload} 
-        />
+      {/* BRANDING SECTION */}
+      <div className="p-8 flex flex-col items-center border-b-4 border-black relative overflow-hidden bg-gradient-to-b from-[#1F2228] to-[#0F1115]">
+        <div className="absolute inset-0 blueprint-grid opacity-10"></div>
         
         <div 
           onClick={triggerUpload}
-          className="w-full max-w-[200px] h-32 mb-4 border-2 border-dashed border-[var(--border-primary)] hover:border-[var(--accent-primary)] transition-colors cursor-pointer flex flex-col items-center justify-center bg-[var(--bg-primary)] relative group overflow-hidden"
+          className="w-48 h-24 mb-6 border-2 border-[#3F4042] hover:border-[#FFD300] transition-all cursor-pointer flex flex-col items-center justify-center bg-black relative group overflow-hidden shadow-inner"
         >
           {customLogo ? (
-            <>
-              <img 
-                src={customLogo} 
-                alt="CUSTOM LOGO" 
-                className="w-full h-full object-contain p-2 grayscale group-hover:grayscale-0 transition-all duration-500"
-              />
-              <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <p className="font-['Black_Ops_One'] text-sm font-bold text-[var(--accent-primary)] uppercase tracking-widest">REPLACE</p>
-              </div>
-            </>
+            <img src={customLogo} alt="LOGO" className="w-full h-full object-contain p-3 grayscale group-hover:grayscale-0 transition-all" />
           ) : (
-            <div className="flex flex-col items-center text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors">
-              <UploadCloud className="h-10 w-10 mb-2" />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-center px-2">UPLOAD_LOGO</p>
+            <div className="flex flex-col items-center text-gray-700 group-hover:text-[#FFD300]">
+              <UploadCloud className="h-8 w-8 mb-2" />
+              <p className="text-[8px] font-mono uppercase tracking-widest">CARGO_UPLOAD</p>
             </div>
           )}
-          <div className="rivet absolute top-1.5 left-1.5"></div>
-          <div className="rivet absolute bottom-1.5 right-1.5"></div>
+          <div className="rivet absolute top-1 left-1 opacity-50"></div>
+          <div className="rivet absolute bottom-1 right-1 opacity-50"></div>
         </div>
         
-        <div className="text-center american-iron-font">
-          <p className="text-xs font-black text-[var(--accent-primary)] tracking-[0.4em] uppercase mb-1">IRON</p>
-          <h1 className="text-5xl md:text-6xl font-black text-[var(--text-primary)] tracking-tighter">MEDIA</h1>
-          <p className="text-[9px] font-mono text-[var(--text-muted)] tracking-widest mt-3 uppercase border-t border-[var(--border-primary)] pt-2">SITE_ORCHESTRATOR</p>
+        <div className="text-center relative z-10">
+          <div className="caution-stripes h-1 w-full mb-2 opacity-50"></div>
+          <h1 className="text-4xl font-black text-white font-['Black_Ops_One'] tracking-tighter">IRON MEDIA</h1>
+          <p className="text-[9px] font-mono text-[#FFD300] tracking-[0.5em] mt-2 uppercase font-black">ORCHESTRATOR_V6</p>
         </div>
+        
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FFD300] to-transparent opacity-20"></div>
       </div>
 
-      <div className="flex-1 p-4 overflow-y-auto mt-4 space-y-6 scrollbar-thin">
+      <div className="flex-1 p-0 overflow-y-auto scrollbar-thin">
         {isAdmin && (
-            <div className="mb-4">
+            <div className="p-4 border-b border-white/5">
                 <button
-                onClick={() => handleTaskClick(Task.AdminPanel)}
-                className={`w-full flex items-center p-3 border-2 border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-[var(--text-accent-on)] transition-all ${activeTask === Task.AdminPanel ? 'bg-[var(--accent-primary)] text-[var(--text-accent-on)] font-black' : ''}`}
+                  onClick={() => handleTaskClick(Task.AdminPanel)}
+                  className={`w-full flex items-center p-3 border-2 border-[#FFD300] bg-[#FFD300]/5 text-[#FFD300] hover:bg-[#FFD300] hover:text-black transition-all ${activeTask === Task.AdminPanel ? 'bg-[#FFD300] text-black font-black' : ''}`}
                 >
-                    <Gear className={`h-5 w-5 mr-3 ${activeTask === Task.AdminPanel ? 'animate-spin' : ''}`} />
-                    <span className="font-['Black_Ops_One'] uppercase tracking-widest">ADMIN COMMAND</span>
+                    <Gear className={`h-4 w-4 mr-3 ${activeTask === Task.AdminPanel ? 'animate-spin' : ''}`} />
+                    <span className="font-['Black_Ops_One'] text-xs uppercase tracking-widest">ADMIN_CMD</span>
                 </button>
             </div>
         )}
 
-        <div>
-          <h2 className="px-4 pb-2 text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.3em] border-b border-[var(--border-primary)]">Iron Media (Gemini)</h2>
-          <div className="mt-2">
-            <NavList items={geminiNavItems} />
-          </div>
-        </div>
-        <div>
-          <h2 className="px-4 pb-2 text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.3em] border-b border-[var(--border-primary)] flex items-center gap-2">
-            <BrainCircuit className="h-4 w-4 text-[var(--text-secondary)]" />
-            Guest Systems (OpenAI)
-          </h2>
-          <div className="mt-2">
-            <NavList items={openAINavItems} />
-          </div>
-        </div>
-        <div>
-          <h2 className="px-4 pb-2 text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.3em] border-b border-[var(--border-primary)] flex items-center gap-2">
-            <XIcon className="h-4 w-4 text-[var(--text-secondary)]" />
-            X-Corp Systems (Grok)
-          </h2>
-          <div className="mt-2">
-            <NavList items={grokNavItems} />
-          </div>
+        <div className="p-4 space-y-8">
+            <div>
+              <h2 className="px-3 pb-2 text-[9px] font-mono text-gray-500 uppercase tracking-[0.4em] mb-2 border-b border-white/5 flex justify-between">
+                <span>GEMINI_CORE</span>
+                <span className="text-green-500 animate-pulse">●</span>
+              </h2>
+              <NavList items={geminiNavItems} />
+            </div>
+
+            <div>
+              <h2 className="px-3 pb-2 text-[9px] font-mono text-gray-500 uppercase tracking-[0.4em] mb-2 border-b border-white/5 flex justify-between">
+                <span>OPENAI_GUEST</span>
+                <span className="text-blue-500">●</span>
+              </h2>
+              <NavList items={openAINavItems} />
+            </div>
+
+            <div>
+              <h2 className="px-3 pb-2 text-[9px] font-mono text-gray-500 uppercase tracking-[0.4em] mb-2 border-b border-white/5 flex justify-between">
+                <span>GROK_X-CORP</span>
+                <span className="text-purple-500">●</span>
+              </h2>
+              <NavList items={grokNavItems} />
+            </div>
         </div>
       </div>
 
-
-      <div className="p-4 border-t-2 border-[var(--border-secondary)] bg-black/30">
-        <div className="flex flex-col gap-2">
+      <div className="p-6 bg-black/50 border-t-4 border-black">
+        <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-[var(--accent-primary)] animate-pulse"></div>
-                    <p className="text-xs font-mono text-[var(--text-secondary)] uppercase tracking-widest">SYSTEM: <span className="text-[var(--accent-primary)]">NOMINAL</span></p>
+                    <div className="h-2 w-2 rounded-full bg-[#FFD300] animate-pulse"></div>
+                    <p className="text-[10px] font-mono text-gray-500 uppercase">OS_STATUS: <span className="text-white">NOMINAL</span></p>
                 </div>
                 <button 
                   onClick={toggleTheme} 
-                  className="p-1.5 bg-[var(--border-primary)] text-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-[var(--text-accent-on)] transition-colors border border-[var(--border-secondary)]" 
-                  title="Toggle Theme"
-                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                  className="p-2 bg-[#2D2E30] text-[#FFD300] border border-black hover:bg-[#FFD300] hover:text-black transition-all" 
                 >
                     {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
             </div>
-            <button onClick={logout} className="text-[10px] font-mono text-red-500 hover:text-[var(--text-primary)] uppercase tracking-wider text-left hover:underline">
-                [ Terminate_Session ]
+            <button onClick={logout} className="text-[9px] font-mono text-red-600 hover:text-red-400 uppercase tracking-widest text-center py-2 bg-red-950/20 border border-red-900/30">
+                [ TERMINATE_ORCHESTRATION ]
             </button>
         </div>
       </div>
