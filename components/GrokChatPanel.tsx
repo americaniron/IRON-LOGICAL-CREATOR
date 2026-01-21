@@ -7,6 +7,7 @@ import { useApiKeyManager } from '../hooks/useApiKeyManager';
 import { useMountedState } from '../hooks/useMountedState';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import ProviderKeyPrompt from './common/ProviderKeyPrompt';
+import { useAppContext } from '../context/AppContext';
 
 const GrokChatPanel: React.FC = () => {
   const [messages, setMessages] = useLocalStorage<Message[]>('im_chat_history_grok', [
@@ -15,8 +16,8 @@ const GrokChatPanel: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useMountedState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // FIX: `useApiKeyManager` does not return `apiKey`. The key is handled by the backend service.
-  const { isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('grok');
+  const { isKeyRequired, isReady, saveKey } = useApiKeyManager('grok');
+  const { handleApiError } = useAppContext();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -27,7 +28,6 @@ const GrokChatPanel: React.FC = () => {
   }, [messages]);
 
   const handleSend = useCallback(async () => {
-    // FIX: Removed `!apiKey` check as it's not available here and is handled by `isKeyRequired` guard and the backend service.
     if (input.trim() === '' || isLoading) return;
 
     const userMessage: Message = { id: Date.now().toString(), text: input, sender: 'user' };
@@ -39,22 +39,18 @@ const GrokChatPanel: React.FC = () => {
     setMessages(prev => [...prev, botTypingMessage]);
 
     try {
-      // FIX: `generateGrokChatResponse` does not take an API key as an argument.
       const response = await generateGrokChatResponse(input);
       const botMessage: Message = { id: (Date.now() + 2).toString(), text: response.toUpperCase(), sender: 'bot' };
       setMessages(prev => prev.filter(m => !m.isTyping).concat(botMessage));
     } catch (error) {
+      handleApiError(error, 'grok');
       const errorMessageText = error instanceof Error ? error.message : 'SIGNAL LOST. PROBABLY SOMETHING BORING.';
-      if (error instanceof Error && (error.message.includes('401') || error.message.includes('403') || error.message.toLowerCase().includes('authentication'))) {
-        resetKey();
-      }
       const errorMessage: Message = { id: (Date.now() + 2).toString(), text: `ERROR_LOG: ${errorMessageText.toUpperCase()}`, sender: 'bot' };
       setMessages(prev => prev.filter(m => !m.isTyping).concat(errorMessage));
     } finally {
       setIsLoading(false);
     }
-    // FIX: Removed `apiKey` from dependency array as it's no longer used.
-  }, [input, isLoading, setMessages, setIsLoading, resetKey]);
+  }, [input, isLoading, setMessages, setIsLoading, handleApiError]);
 
   if (!isReady) {
     return <div className="flex items-center justify-center h-full"><Spinner text="AWAKENING GROK_CORE..." /></div>;

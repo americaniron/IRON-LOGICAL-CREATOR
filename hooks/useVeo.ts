@@ -84,9 +84,13 @@ export const useVeo = () => {
       
       operation = await pollOperation(operation);
 
+      if (operation.error) {
+        throw new Error(`INITIAL SEGMENT FAILED: ${operation.error.message}`);
+      }
+
       const initialState = operation.response?.generatedVideos?.[0]?.video?.state;
       if (initialState !== 'SUCCEEDED') {
-          const failureReason = operation.error?.message || `Video processing failed with state: ${initialState}`;
+          const failureReason = `Video processing failed with state: ${initialState || 'UNKNOWN'}`;
           throw new Error(`INITIAL SEGMENT FAILED: ${failureReason}`);
       }
       
@@ -107,9 +111,13 @@ export const useVeo = () => {
 
         operation = await pollOperation(operation);
         
+        if (operation.error) {
+            throw new Error(`EXTENSION SEGMENT FAILED: ${operation.error.message}`);
+        }
+
         const extendedState = operation.response?.generatedVideos?.[0]?.video?.state;
         if (extendedState !== 'SUCCEEDED') {
-            const failureReason = operation.error?.message || `Video extension failed with state: ${extendedState}`;
+            const failureReason = `Video extension failed with state: ${extendedState || 'UNKNOWN'}`;
             throw new Error(`EXTENSION SEGMENT FAILED: ${failureReason}`);
         }
 
