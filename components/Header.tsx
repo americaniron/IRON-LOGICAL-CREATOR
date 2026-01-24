@@ -25,24 +25,24 @@ const Header: React.FC = () => {
   const title = TASK_TITLES[activeTask] || 'Command_Deck';
 
   return (
-    <header className="bg-gradient-to-b from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)] border-b-2 border-[var(--border-secondary)] px-4 md:px-8 py-3 md:py-4 flex justify-between items-center sticky top-0 z-20 shadow-xl">
-      <div className="flex items-center gap-3 md:gap-4">
-        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1" aria-label="Open sidebar">
-          <Menu className="h-6 w-6" />
+    <header className="bg-gradient-to-b from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)] border-b-2 border-[var(--border-secondary)] px-3 sm:px-6 md:px-8 py-2.5 sm:py-4 flex justify-between items-center sticky top-0 z-20 shadow-xl shrink-0">
+      <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 bg-black/20 border border-industrial-gray mr-1" aria-label="Open sidebar">
+          <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
-        <div className="h-4 w-4 bg-[var(--accent-primary)] rounded-none shadow-[var(--accent-glow)] animate-pulse hidden md:block"></div>
-        <h2 className="text-base sm:text-xl md:text-3xl font-['Black_Ops_One'] text-[var(--text-primary)] tracking-widest uppercase truncate max-w-[200px] sm:max-w-none">
-          {title.replace(/ /g, '_')}<span className="text-[var(--accent-primary)]">_</span>
+        <div className="h-3 w-3 sm:h-4 sm:w-4 bg-[var(--accent-primary)] rounded-none shadow-[var(--accent-glow)] animate-pulse hidden sm:block shrink-0"></div>
+        <h2 className="text-xs sm:text-base md:text-2xl lg:text-3xl font-['Black_Ops_One'] text-[var(--text-primary)] tracking-widest uppercase truncate whitespace-nowrap">
+          {title.replace(/ /g, '_')}<span className="text-[var(--accent-primary)] hidden sm:inline">_</span>
         </h2>
       </div>
-      <div className="hidden sm:flex items-center gap-4 font-mono text-[10px] md:text-xs text-[var(--text-muted)] tracking-wider uppercase">
-        <div className="hidden lg:block bg-black/40 px-4 py-2 border border-[var(--border-primary)] shadow-inner">
-          <span className="text-[var(--text-muted)]">AUTH_TOKEN: </span>
+      <div className="flex items-center gap-2 md:gap-4 font-mono text-[8px] sm:text-[10px] md:text-xs text-[var(--text-muted)] tracking-wider uppercase shrink-0">
+        <div className="hidden lg:block bg-black/40 px-3 py-1.5 sm:px-4 sm:py-2 border border-[var(--border-primary)] shadow-inner">
+          <span className="text-[var(--text-muted)]">AUTH: </span>
           <span className="text-[var(--accent-primary)] font-bold">VERIFIED</span>
         </div>
-        <div className="bg-black/40 px-4 py-2 border border-[var(--border-primary)] shadow-inner">
-          <span className="text-[var(--text-muted)]">UPTIME: </span>
-          <span className="text-[var(--text-primary)] font-bold">99.98%</span>
+        <div className="bg-black/40 px-3 py-1.5 sm:px-4 sm:py-2 border border-[var(--border-primary)] shadow-inner">
+          <span className="text-[var(--text-muted)] hidden xs:inline">UPTIME: </span>
+          <span className="text-[var(--text-primary)] font-bold">99.9%</span>
         </div>
       </div>
     </header>

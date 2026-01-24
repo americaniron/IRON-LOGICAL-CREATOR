@@ -303,7 +303,7 @@ export const generateSpeech = async (text: string, voice: string): Promise<strin
 export const startVideoGeneration = async (
   prompt: string,
   aspectRatio: string,
-  resolution: string,
+  resolution: '720p' | '1080p',
   model: string,
   imageFile?: File
 ): Promise<any> => {
@@ -319,7 +319,7 @@ export const startVideoGeneration = async (
       image: imagePart ? { imageBytes: imagePart.inlineData.data, mimeType: imagePart.inlineData.mimeType } : undefined,
       config: {
         numberOfVideos: 1,
-        resolution: resolution as '720p' | '1080p',
+        resolution: resolution,
         aspectRatio: aspectRatio as '16:9' | '9:16',
         temperature: 0.2,
       }
@@ -339,6 +339,7 @@ export const extendVideoGeneration = async (
   const ai = getAI();
   try {
     // CRITICAL: Extension MUST use 720p. The input video MUST also have been 720p.
+    // The previousVideo object contains the resolution from segment 1.
     const extensionPrompt = "SYSTEM_DIRECTIVE: EXTEND THE STORYBOARD FLUIDLY. ADHERE TO PREVIOUS FRAME CONTINUITY. DIRECTIVE: " + prompt;
     let operation = await ai.models.generateVideos({
       model: 'veo-3.1-generate-preview',

@@ -66,6 +66,10 @@ export const useVeo = () => {
           }
 
           if (!isMounted.current) throw new Error('Operation cancelled: Component unmounted.');
+          
+          // Check for API errors inside the operation response
+          if (operation.error) return operation;
+
           setProgressMessage(VIDEO_GENERATION_MESSAGES[messageIndex % VIDEO_GENERATION_MESSAGES.length]);
           messageIndex++;
       }
@@ -77,26 +81,27 @@ export const useVeo = () => {
     setIsLoading(true);
     setError(null);
     setResultUrl(null);
-    setProgressMessage("CALIBRATING PRODUCTION RIG...");
+    setProgressMessage("INITIALIZING PRODUCTION RIG...");
     
-    // Duration > 8s requires extension segments. 
-    // Extensions MUST have 720p base.
+    // Duration > 8s requires extension segments.
+    // CRITICAL: Any video that will be extended MUST start as 720p.
     const requiresExtension = params.duration > 8;
     const baseEstimate = 60;
     const extensionEstimate = Math.ceil((params.duration - 8) / 7) * 45;
     startTimer(baseEstimate + (extensionEstimate > 0 ? extensionEstimate : 0));
 
     try {
-      // Force 720p and Slow model for multi-segment generation to ensure compatibility
-      const generationModel = requiresExtension ? 'veo-3.1-generate-preview' : params.model;
+      // FORCE 720p for the initial segment if we know we are extending.
+      // Extensions do NOT support 1080p input videos.
       const effectiveResolution = requiresExtension ? '720p' : params.resolution;
+      const generationModel = requiresExtension ? 'veo-3.1-generate-preview' : params.model;
 
-      console.log(`Fabricating Base Segment: Model=${generationModel}, Res=${effectiveResolution}`);
+      console.log(`Fabricating Segment 1: Model=${generationModel}, Resolution=${effectiveResolution}, Duration=8.2s`);
 
       let operation = await startVideoGeneration(
         params.prompt,
         params.aspectRatio,
-        effectiveResolution,
+        effectiveResolution as '720p' | '1080p',
         generationModel,
         params.imageFile
       );
@@ -104,24 +109,24 @@ export const useVeo = () => {
       operation = await pollOperation(operation);
 
       if (operation.error) {
-        throw new Error(`INITIAL SEGMENT FAILED: ${operation.error.message || 'ENGINE FAILURE'}`);
+        throw new Error(`SEGMENT 1 FAILURE: ${operation.error.message || 'ENGINE ERROR'}`);
       }
 
       let currentVideo = operation.response?.generatedVideos?.[0]?.video;
       
       if (!currentVideo?.uri && operation.done) {
-          throw new Error('INITIAL SEGMENT FAILED: Operation finished but no valid asset URI was emitted.');
+          throw new Error('FABRICATION ERROR: Operation completed but no video asset was found.');
       }
       
-      let currentDuration = 8; 
+      let currentDuration = 8.2; 
 
       while (currentDuration < params.duration && requiresExtension) {
         if (!isMounted.current) return;
-        if (!currentVideo) throw new Error("SEQUENCE CONTINUITY ERROR.");
+        if (!currentVideo) throw new Error("SEQUENCE CONTINUITY ERROR: Missing input for extension.");
 
-        setProgressMessage(`FABRICATING SEGMENT: ${currentDuration}s - ${Math.min(currentDuration + 7, params.duration)}s...`);
+        setProgressMessage(`EXTENDING TIMELINE: ${currentDuration.toFixed(1)}s / ${params.duration}s...`);
         
-        console.log(`Extending Segment: From=${currentDuration}s, Model=veo-3.1-generate-preview, Res=720p`);
+        console.log(`Extending Video from ${currentDuration}s. Target Resolution: 720p`);
 
         operation = await extendVideoGeneration(
           params.prompt,
@@ -132,12 +137,12 @@ export const useVeo = () => {
         operation = await pollOperation(operation);
         
         if (operation.error) {
-            throw new Error(`EXTENSION SEGMENT FAILED: ${operation.error.message || 'ENGINE FAILURE'}`);
+            throw new Error(`EXTENSION FAILURE: ${operation.error.message || 'ENGINE ERROR'}`);
         }
 
         const extendedVideo = operation.response?.generatedVideos?.[0]?.video;
         if (!extendedVideo?.uri) {
-            throw new Error('EXTENSION SEGMENT FAILED: Operation finished but asset extension was incomplete.');
+            throw new Error('EXTENSION ERROR: Output video object is null.');
         }
 
         currentVideo = extendedVideo;
@@ -148,20 +153,19 @@ export const useVeo = () => {
       const downloadLink = currentVideo?.uri;
 
       if (downloadLink) {
-        setProgressMessage('FINALIZING ASSET EXPORT...');
+        setProgressMessage('FINALIZING MULTIMEDIA EXPORT...');
         const finalUrl = await fetchVideoResult(downloadLink);
         if (isMounted.current) {
           setResultUrl(finalUrl);
         }
       } else {
-        throw new Error('FABRICATION COMPLETE BUT EXPORT LINK IS NULL.');
+        throw new Error('EXPORT ERROR: Download link returned null from production core.');
       }
     } catch (err) {
         if (isMounted.current) {
-            console.error("Fabrication Catch-All Error:", err);
-            let errorMessage = "UNKNOWN FABRICATION ERROR.";
-        
-            // Extraction logic for JSON or direct strings
+            console.error("Video Orchestration Error:", err);
+            
+            // Extract the most useful error message
             let rawMessage = "";
             if (err instanceof Error) {
                 rawMessage = err.message;
@@ -172,25 +176,19 @@ export const useVeo = () => {
                 rawMessage = String(err);
             }
 
-            if (rawMessage.trim().startsWith('{')) {
-                try {
-                    const parsed = JSON.parse(rawMessage);
-                    rawMessage = parsed.error?.message || parsed.message || rawMessage;
-                } catch (e) { /* ignore parse error */ }
-            }
-
+            // Standardize error text
             const lowerMsg = rawMessage.toLowerCase();
-            if (lowerMsg.includes('429') || lowerMsg.includes('quota') || lowerMsg.includes('resource_exhausted') || lowerMsg.includes('limit')) {
-                errorMessage = '!! QUOTA EXHAUSTED !!\nSYSTEM HAS REACHED GENERATION LIMITS. VEO MODELS REQUIRE A PAID PROJECT WITH ACTIVE BILLING. PLEASE RE-AUTHORIZE WITH A PAID KEY.';
-            } else if (lowerMsg.includes('404') || lowerMsg.includes('requested entity was not found')) {
-                errorMessage = '!! PROJECT ERROR !!\nTHE SELECTED API PROJECT WAS NOT FOUND OR DOES NOT SUPPORT VEO. PLEASE RE-AUTHORIZE WITH A PAID PROJECT.';
-            } else if (lowerMsg.includes('720p')) {
-                errorMessage = '!! RESOLUTION CONFLICT !!\nEXTENDED SEQUENCES REQUIRE 720P BASE RIGGING. RE-CALIBRATING SYSTEM...';
-            } else {
-                errorMessage = rawMessage;
+            let finalError = rawMessage;
+
+            if (lowerMsg.includes('requested entity was not found') || lowerMsg.includes('404')) {
+                finalError = "!! ACCESS DENIED !!\nTHE SELECTED PROJECT DOES NOT SUPPORT VEO GENERATION. PLEASE RE-AUTHORIZE WITH A PAID API KEY FROM A BILLING-ENABLED PROJECT.";
+            } else if (lowerMsg.includes('quota') || lowerMsg.includes('429') || lowerMsg.includes('resource_exhausted')) {
+                finalError = "!! QUOTA EXHAUSTED !!\nSYSTEM HAS REACHED API LIMITS. ENSURE YOUR PROJECT HAS BILLING ENABLED AND QUOTA IS AVAILABLE.";
+            } else if (lowerMsg.includes('1080p') || lowerMsg.includes('resolution')) {
+                finalError = "!! RESOLUTION MISMATCH !!\nEXTENSION RIG REQUIRES 720P BASE. SYSTEM AUTOMATICALLY DOWN-SCALED BUT ENCOUNTERED A CONFLICT.";
             }
 
-            setError(errorMessage.toUpperCase());
+            setError(finalError.toUpperCase());
             handleApiError(err, 'gemini_pro');
         }
     } finally {
