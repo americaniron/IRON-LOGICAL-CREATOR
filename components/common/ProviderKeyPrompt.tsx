@@ -35,10 +35,10 @@ const PROVIDER_CONFIG: Record<ApiProvider, ProviderInfo> = {
   },
   gemini_pro: {
     Icon: Gear,
-    title: '!! Enterprise Clearance Required !!',
-    description: 'This engine requires a valid API Key from a registered Google Cloud project with active billing.',
+    title: '!! Enterprise Engine Authorization !!',
+    description: 'This high-performance engine requires a user-selected API key from a Google Cloud project with billing enabled to function.',
     docsUrl: 'https://ai.google.dev/gemini-api/docs/billing',
-    docsLabel: 'Review Billing Documentation',
+    docsLabel: 'Review Billing & Plan Documentation',
     buttonText: 'Select API Key',
   },
 };
@@ -55,7 +55,11 @@ const ProviderKeyPrompt: React.FC<ProviderKeyPromptProps> = ({ provider, onKeySu
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onKeySubmit(key.trim() || 'gemini_pro_dummy_key'); // Dummy key for gemini pro just triggers the dialog
+    if (provider === 'gemini_pro') {
+      onKeySubmit(''); // No key to pass, just trigger the action from the hook
+    } else {
+      onKeySubmit(key.trim());
+    }
   };
 
   return (
@@ -68,7 +72,7 @@ const ProviderKeyPrompt: React.FC<ProviderKeyPromptProps> = ({ provider, onKeySu
           <p className="text-sm text-[var(--text-secondary)] font-mono">{config.description}</p>
         </div>
         
-        {config.keyPlaceholder && (
+        {config.keyPlaceholder ? (
             <Input
                 label={`${provider.toUpperCase().replace('_PRO','').replace('GEMINI','ENTERPRISE')}_API_KEY`}
                 id={`${provider}_key`}
@@ -78,6 +82,10 @@ const ProviderKeyPrompt: React.FC<ProviderKeyPromptProps> = ({ provider, onKeySu
                 placeholder={config.keyPlaceholder}
                 required
             />
+        ) : (
+             <p className="text-xs text-[var(--text-muted)] font-mono leading-relaxed bg-[var(--bg-tertiary)] p-3 border border-[var(--border-primary)]">
+              Clicking '{config.buttonText}' will open a dialog to choose a key from your available Google Cloud projects.
+          </p>
         )}
         
         <div className="flex flex-col sm:flex-row gap-4 pt-2 items-center">

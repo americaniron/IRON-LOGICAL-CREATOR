@@ -1,82 +1,70 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAppContext } from '../context/AppContext';
-import * as backend from '../services/backendService';
-
-// Define the AIStudio interface to match the environment's expectations
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-  interface Window { aistudio?: AIStudio }
-}
+import { useMountedState } from './useMountedState';
 
 export type ApiProvider = 'gemini_pro' | 'openai' | 'grok';
 
-export const useApiKeyManager = (provider: ApiProvider) => {
-  const { currentUser } = useAppContext();
-  const [isKeyRequired, setIsKeyRequired] = useState(true);
-  const [isReady, setIsReady] = useState(false);
+interface ApiKeyManagerOptions {
+  model?: string;
+}
 
+const VEO_MODELS = ['veo-3.1-fast-generate-preview', 'veo-3.1-generate-preview'];
+const PRO_IMAGE_MODELS = ['gemini-3-pro-image-preview'];
+const MODELS_REQUIRING_USER_KEY = [...VEO_MODELS, ...PRO_IMAGE_MODELS];
+
+export const useApiKeyManager = (provider: ApiProvider, options: ApiKeyManagerOptions = {}) => {
+  const { model } = options;
+  const requiresUserKey = provider === 'gemini_pro' && !!model && MODELS_REQUIRING_USER_KEY.includes(model);
+
+  const [isChecking, setIsChecking] = useMountedState(requiresUserKey);
+  const [isKeySelected, setIsKeySelected] = useMountedState(false);
+  
   const checkKey = useCallback(async () => {
-    if (!currentUser) {
-        setIsReady(true);
-        return;
-    };
-
-    setIsReady(false);
-    if (provider === 'gemini_pro') {
-      if (!window.aistudio) {
-        // Dev environment, assume key is present
-        setIsKeyRequired(false);
-      } else {
+    if (window.aistudio) {
         try {
-          const hasKey = await window.aistudio.hasSelectedApiKey();
-          setIsKeyRequired(!hasKey);
+            const hasKey = await window.aistudio.hasSelectedApiKey();
+            setIsKeySelected(hasKey);
         } catch (e) {
-          console.error(`Error checking Gemini Pro key:`, e);
-          setIsKeyRequired(true);
+            console.error("Error checking for API key:", e);
+            setIsKeySelected(false);
+        } finally {
+            setIsChecking(false);
         }
-      }
     } else {
-      try {
-        const hasKey = await backend.hasApiKey(provider);
-        setIsKeyRequired(!hasKey);
-      } catch (e) {
-        console.error(`Could not check key for ${provider}:`, e);
-        setIsKeyRequired(true);
-      }
+        setTimeout(checkKey, 100);
     }
-    setIsReady(true);
-  }, [provider, currentUser]);
+  }, [setIsKeySelected, setIsChecking]);
 
   useEffect(() => {
-    checkKey();
-  }, [checkKey]);
-
-  const saveKey = useCallback(async (key: string) => {
-    if (provider === 'gemini_pro') {
-      if (window.aistudio) {
-        await window.aistudio.openSelectKey();
-        // Optimistically set to true after dialog opens
-        setIsKeyRequired(false);
-      }
-    } else {
-      try {
-        await backend.saveApiKey(provider, key);
-        setIsKeyRequired(false);
-      } catch (e) {
-        console.error(`Could not save key for ${provider}:`, e);
-      }
+    if (requiresUserKey) {
+      checkKey();
     }
-  }, [provider]);
-  
-  // This is now handled globally by handleApiError in AppContext
-  const resetKey = useCallback(() => {
-      // The global error handler will force a reload which re-triggers the key check.
-      console.log(`Resetting key state for ${provider}.`);
-      setIsKeyRequired(true);
-  }, [provider]);
+  }, [requiresUserKey, checkKey]);
 
-  return { isKeyRequired, isReady, saveKey, resetKey };
+  const selectKey = useCallback(async () => {
+    if (!requiresUserKey || !window.aistudio) return;
+    try {
+        await window.aistudio.openSelectKey();
+        setIsKeySelected(true);
+    } catch (e) {
+        console.error("Error opening key selection dialog:", e);
+    }
+  }, [requiresUserKey, setIsKeySelected]);
+
+  // For models/providers that DON'T require special user key selection.
+  if (!requiresUserKey) {
+    return {
+      isKeyRequired: false,
+      isReady: true,
+      saveKey: useCallback(() => console.log('API key submission ignored; key is hardcoded.'), []),
+      resetKey: useCallback(() => console.log('Key reset called; key is hardcoded.'), []),
+    };
+  }
+
+  // For models that DO require user key selection (Veo, Pro Image)
+  return {
+    isKeyRequired: !isKeySelected,
+    isReady: !isChecking,
+    saveKey: selectKey,
+    resetKey: selectKey,
+  };
 };

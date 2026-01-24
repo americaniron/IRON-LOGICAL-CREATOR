@@ -7,20 +7,31 @@ const db = {
   requests: (): AccessRequest[] => JSON.parse(localStorage.getItem('im_db_requests') || '[]'),
   assets: (userId: string): Asset[] => JSON.parse(localStorage.getItem(`im_db_assets_${userId}`) || '[]'),
   chats: (userId: string): Record<Task, Message[]> => JSON.parse(localStorage.getItem(`im_db_chats_${userId}`) || '{}'),
-  apiKeys: (userId: string): Partial<Record<ApiProvider, string>> => JSON.parse(localStorage.getItem(`im_db_apikeys_${userId}`) || '{}'),
 
   saveUsers: (users: UserAccount[]) => localStorage.setItem('im_db_users', JSON.stringify(users)),
   saveRequests: (requests: AccessRequest[]) => localStorage.setItem('im_db_requests', JSON.stringify(requests)),
   saveAssets: (userId: string, assets: Asset[]) => localStorage.setItem(`im_db_assets_${userId}`, JSON.stringify(assets)),
   saveChats: (userId: string, chats: Record<Task, Message[]>) => localStorage.setItem(`im_db_chats_${userId}`, JSON.stringify(chats)),
-  saveApiKeys: (userId: string, keys: Partial<Record<ApiProvider, string>>) => localStorage.setItem(`im_db_apikeys_${userId}`, JSON.stringify(keys)),
 };
 
-// Seed initial system admin
+// Seed initial system admin with an integrity check on every boot.
 const seedSystem = () => {  
   const users = db.users();
-  if (!users.some(u => u.role === 'admin')) {
-    users.push({ 
+  const adminUser = users.find(u => u.id === 'admin_001' && u.role === 'admin');
+
+  if (adminUser) {
+    // If the admin user exists but the PIN is incorrect, reset it.
+    // This ensures the default admin PIN is always available and corrects corruption.
+    if (adminUser.pin !== '01970') {
+        adminUser.pin = '01970';
+        console.warn("IRON MEDIA ORCHESTRATOR :: Admin PIN integrity compromised. Resetting to default.");
+        db.saveUsers(users);
+    }
+  } else {
+    // If no admin user exists, create one. This handles initial setup or a cleared database.
+    // Filter out any potential non-admin user with the same ID to prevent duplicates.
+    const otherUsers = users.filter(u => u.id !== 'admin_001');
+    otherUsers.push({ 
         id: 'admin_001', 
         name: 'COMMANDER_Z', 
         pin: '01970', 
@@ -29,17 +40,20 @@ const seedSystem = () => {
         plan: 'commander',
         joinedAt: Date.now() 
     });
-    db.saveUsers(users);
+    db.saveUsers(otherUsers);
+    console.log("IRON MEDIA ORCHESTRATOR :: Default admin credentials seeded.");
   }
 };
 seedSystem();
 
-const SESSION_KEY = 'im_session_token';
+// Using localStorage for SESSION_KEY ensures the operative stays logged in
+// even after the browser is closed, facilitating frequent usage.
+const SESSION_KEY = 'im_persistent_session_token';
 
 // --- CORE UTILITIES ---
 
 export const getSession = (): UserSession | null => {
-    const sessionData = sessionStorage.getItem(SESSION_KEY);
+    const sessionData = localStorage.getItem(SESSION_KEY);
     return sessionData ? JSON.parse(sessionData) : null;
 };
 
@@ -83,14 +97,14 @@ export const login = async (pin: string): Promise<{ success: boolean; session?: 
             joinedAt: user.joinedAt,
             token 
         };
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
         return { success: true, session };
     }
     return { success: false, message: 'CREDENTIAL_FAILURE: ACCESS_DENIED' };
 };
 
 export const logout = async (): Promise<void> => {
-    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
 };
 
 // --- RESOURCE MANAGEMENT (CREDITS) ---
@@ -108,7 +122,7 @@ export const deductCredits = async (amount: number): Promise<boolean> => {
         
         // Update session to reflect new balance
         const updatedSession = { ...session, credits: user.credits };
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+        localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
         return true;
     }
     return false;
@@ -144,6 +158,25 @@ export const submitAccessRequest = async (name: string, reason: string): Promise
     const requests = db.requests();
     const newRequest: AccessRequest = { id: `req_${Date.now()}`, name, reason, timestamp: Date.now(), status: 'pending' };
     db.saveRequests([...requests, newRequest]);
+};
+
+export const checkRequestStatusByName = async (name: string): Promise<AccessRequest | undefined> => {
+    await new Promise(res => setTimeout(res, 600)); // Simulate network delay
+    const requests = db.requests();
+    const userRequests = requests.filter(r => r.name.toLowerCase() === name.toLowerCase());
+    
+    // Prioritize showing an approved request so the user can always get their PIN.
+    const approvedRequest = userRequests.find(r => r.status === 'approved');
+    if (approvedRequest) {
+        return approvedRequest;
+    }
+    
+    // Otherwise, show the most recent request.
+    if (userRequests.length > 0) {
+        return userRequests.sort((a, b) => b.timestamp - a.timestamp)[0];
+    }
+
+    return undefined;
 };
 
 export const approveRequest = async (id: string): Promise<void> => {
@@ -259,33 +292,3 @@ export const addMessage = async (task: Task.Chat | Task.OpenAIChat | Task.GrokCh
     db.saveChats(session.id, userChats);
     return updatedHistory;
 };
-
-export const hasApiKey = async (provider: ApiProvider): Promise<boolean> => {
-    const session = getSession();
-    if (!session) return false;
-    const userKeys = db.apiKeys(session.id);
-    return !!userKeys[provider];
-};
-
-export const saveApiKey = async (provider: ApiProvider, key: string): Promise<void> => {
-    const session = getSession();
-    if (!session) throw new Error("Not authenticated");
-    const userKeys = db.apiKeys(session.id);
-    userKeys[provider] = key;
-    db.saveApiKeys(session.id, userKeys);
-};
-
-export const getApiKey = async (provider: ApiProvider): Promise<string | null> => {
-    const session = getSession();
-    if (!session) return null;
-    const userKeys = db.apiKeys(session.id);
-    return userKeys[provider] || null;
-}
-
-export const clearApiKey = (provider: ApiProvider): void => {
-    const session = getSession();
-    if (!session) return;
-    const userKeys = db.apiKeys(session.id);
-    delete userKeys[provider];
-    db.saveApiKeys(session.id, userKeys);
-}

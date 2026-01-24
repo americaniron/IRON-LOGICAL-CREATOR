@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { generateImage, downloadAsset } from '../services/geminiService';
 import { ImageResult } from '../types';
@@ -33,7 +34,7 @@ const ImagePanel: React.FC = () => {
   const [result, setResult] = useMountedState<ImageResult | null>(null);
 
   const { addAsset } = useAppContext();
-  const { isKeyRequired, isReady, saveKey } = useApiKeyManager('gemini_pro');
+  const { isKeyRequired, isReady, saveKey } = useApiKeyManager('gemini_pro', { model });
 
   const isProModel = model === 'gemini-3-pro-image-preview';
 
@@ -100,7 +101,7 @@ const ImagePanel: React.FC = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-          {isProModel && isReady && isKeyRequired && (
+          {isReady && isKeyRequired && (
             <div className="mb-4">
                <ProviderKeyPrompt provider="gemini_pro" onKeySubmit={saveKey} />
             </div>
@@ -112,6 +113,7 @@ const ImagePanel: React.FC = () => {
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="A FUTURISTIC SKYSCRAPER..."
             required
+            disabled={isKeyRequired}
           />
           <Input
             label="EXCLUSION_DATA"
@@ -119,6 +121,7 @@ const ImagePanel: React.FC = () => {
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
             placeholder="LOW_QUALITY..."
+            disabled={isKeyRequired}
           />
           <div className="grid grid-cols-2 gap-4 md:gap-6">
             <Select
@@ -127,6 +130,7 @@ const ImagePanel: React.FC = () => {
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
               options={aspectRatios.map(r => ({ value: r, label: r }))}
+              disabled={isKeyRequired}
             />
             <Select
               label="ENGINE_MODEL"
@@ -134,6 +138,7 @@ const ImagePanel: React.FC = () => {
               value={model}
               onChange={(e) => setModel(e.target.value)}
               options={models.map(m => ({ value: m, label: m.toUpperCase().replace('GEMINI-', '').replace('-IMAGE', '').replace('2.5', 'LITE') }))}
+              disabled={isKeyRequired}
             />
           </div>
 
@@ -176,7 +181,7 @@ const ImagePanel: React.FC = () => {
               )}
             </div>
           )}
-          <Button type="submit" disabled={isLoading || (isProModel && isKeyRequired)} className="w-full !py-4 md:!py-6">
+          <Button type="submit" disabled={isLoading || isKeyRequired} className="w-full !py-4 md:!py-6">
             {isLoading ? 'FABRICATING...' : 'FABRICATE IMAGE'}
           </Button>
         </form>

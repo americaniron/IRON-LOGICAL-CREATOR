@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { checkRequestStatusByName } from '../services/backendService';
 import Button from './common/Button';
+import Spinner from './common/Spinner';
 import { Gear } from './common/Icons';
+import { AccessRequest } from '../types';
 
 const AuthScreen: React.FC = () => {
     const { login, submitAccessRequest } = useAppContext();
@@ -9,9 +12,17 @@ const AuthScreen: React.FC = () => {
     const [mode, setMode] = useState<'login' | 'request'>('login');
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    
+    // State for request access flow
+    const [requestView, setRequestView] = useState<'form' | 'status'>('form');
     const [requestName, setRequestName] = useState('');
     const [requestReason, setRequestReason] = useState('');
     const [requestSubmitted, setRequestSubmitted] = useState(false);
+    
+    // State for status check flow
+    const [statusCheckName, setStatusCheckName] = useState('');
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [checkedRequest, setCheckedRequest] = useState<AccessRequest | 'not_found' | null>(null);
 
     const handleNumClick = (num: string) => {
         if (pin.length < 5) {
@@ -39,13 +50,59 @@ const AuthScreen: React.FC = () => {
         setIsLoading(false);
     };
 
+    const handleStatusCheck = async () => {
+        if (!statusCheckName.trim()) return;
+        setIsCheckingStatus(true);
+        setCheckedRequest(null);
+        const result = await checkRequestStatusByName(statusCheckName);
+        setCheckedRequest(result || 'not_found');
+        setIsCheckingStatus(false);
+    };
+
     const handleSubmitRequest = async (e: React.FormEvent) => {
         e.preventDefault();
         if(!requestName || !requestReason) return;
         setIsLoading(true);
         await submitAccessRequest(requestName, requestReason);
         setRequestSubmitted(true);
+        // Automatically check status after submitting
+        setStatusCheckName(requestName);
+        setRequestView('status');
+        const result = await checkRequestStatusByName(requestName);
+        setCheckedRequest(result || 'not_found');
         setIsLoading(false);
+    };
+
+    const renderRequestStatus = () => {
+        if (isCheckingStatus) {
+            return <Spinner text="QUERYING CENTRAL DATABASE..." />;
+        }
+        if (!checkedRequest) {
+            return null;
+        }
+        if (checkedRequest === 'not_found') {
+            return <div className="p-4 bg-asphalt border border-industrial-gray text-center font-mono uppercase text-sm text-gray-500">No application found for operative: <span className="text-white">{statusCheckName}</span></div>;
+        }
+        switch(checkedRequest.status) {
+            case 'approved':
+                return (
+                    <div className="p-6 bg-heavy-yellow/10 border-2 border-heavy-yellow text-center space-y-4 animate-in fade-in duration-500">
+                        <h3 className="text-lg font-['Black_Ops_One'] text-heavy-yellow tracking-widest uppercase">Access Authorized</h3>
+                        <p className="font-mono text-white text-sm">Operative <span className="font-black">{checkedRequest.name}</span>, your credentials are confirmed.</p>
+                        <div className="bg-black p-4 border border-industrial-gray">
+                            <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">Your 5-Digit Access PIN is:</p>
+                            <p className="text-4xl font-black font-mono text-heavy-yellow tracking-[0.2em] my-2">{checkedRequest.generatedPin}</p>
+                        </div>
+                         <button onClick={() => setMode('login')} className="text-xs font-mono uppercase underline text-heavy-yellow hover:text-white">Return to Login</button>
+                    </div>
+                );
+            case 'pending':
+                return <div className="p-4 bg-asphalt border border-industrial-gray text-center font-mono uppercase text-sm text-gray-400 animate-pulse">Request for <span className="text-white">{checkedRequest.name}</span> is pending review by COMMAND.</div>;
+            case 'denied':
+                 return <div className="p-4 bg-danger-secondary/20 border border-danger-primary text-center font-mono uppercase text-sm text-danger-primary">Application for <span className="text-white">{checkedRequest.name}</span> was denied.</div>;
+            default:
+                return null;
+        }
     };
 
     return (
@@ -53,7 +110,6 @@ const AuthScreen: React.FC = () => {
             <div className="absolute inset-0 blueprint-grid opacity-20 pointer-events-none"></div>
             
             <div className="relative w-full max-w-md bg-[var(--bg-secondary)] border-4 border-[var(--border-primary)] shadow-[0_0_50px_rgba(0,0,0,0.9)] overflow-hidden">
-                {/* Header */}
                 <div className="bg-[var(--accent-primary)] p-4 border-b-4 border-black flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <Gear className="h-8 w-8 text-black animate-[spin_10s_linear_infinite]" />
@@ -101,59 +157,63 @@ const AuthScreen: React.FC = () => {
                         </>
                     ) : (
                         <div className="animate-in fade-in slide-in-from-right-10 duration-300">
-                             {!requestSubmitted ? (
+                             <div className="flex border-b-2 border-industrial-gray mb-6">
+                                <button onClick={() => { setRequestView('form'); setCheckedRequest(null); }} className={`flex-1 p-3 text-xs font-mono uppercase tracking-widest ${requestView === 'form' ? 'bg-industrial-gray text-white font-bold' : 'text-gray-600 hover:bg-asphalt'}`}>New Application</button>
+                                <button onClick={() => setRequestView('status')} className={`flex-1 p-3 text-xs font-mono uppercase tracking-widest ${requestView === 'status' ? 'bg-industrial-gray text-white font-bold' : 'text-gray-600 hover:bg-asphalt'}`}>Check Status</button>
+                             </div>
+
+                             {requestView === 'form' ? (
                                 <form onSubmit={handleSubmitRequest} className="space-y-4">
-                                    <h2 className="text-[var(--text-primary)] font-['Black_Ops_One'] text-lg text-center uppercase mb-4">Clearance Application</h2>
+                                    <h2 className="text-white/80 font-['Black_Ops_One'] text-lg text-center uppercase mb-4">Clearance Application</h2>
                                     <div>
-                                        <label htmlFor="req-name" className="block text-[10px] text-[var(--accent-primary)] font-mono uppercase mb-1">Operative Name</label>
+                                        <label htmlFor="req-name" className="block text-[10px] text-heavy-yellow font-mono uppercase mb-1">Operative Name</label>
                                         <input 
                                             id="req-name"
                                             type="text" 
                                             value={requestName}
                                             onChange={e => setRequestName(e.target.value)}
-                                            className="w-full bg-[var(--bg-input)] border border-[var(--border-primary)] p-2 text-[var(--text-primary)] font-mono uppercase focus:border-[var(--accent-primary)] outline-none"
+                                            className="w-full bg-asphalt border border-industrial-gray p-2 text-white font-mono uppercase focus:border-heavy-yellow outline-none"
                                             required
                                             disabled={isLoading}
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="req-reason" className="block text-[10px] text-[var(--accent-primary)] font-mono uppercase mb-1">Mission Objective</label>
+                                        <label htmlFor="req-reason" className="block text-[10px] text-heavy-yellow font-mono uppercase mb-1">Mission Objective</label>
                                         <textarea 
                                             id="req-reason"
                                             value={requestReason}
                                             onChange={e => setRequestReason(e.target.value)}
-                                            className="w-full bg-[var(--bg-input)] border border-[var(--border-primary)] p-2 text-[var(--text-primary)] font-mono uppercase focus:border-[var(--accent-primary)] outline-none h-24"
+                                            className="w-full bg-asphalt border border-industrial-gray p-2 text-white font-mono uppercase focus:border-heavy-yellow outline-none h-24"
                                             required
                                             disabled={isLoading}
                                         />
                                     </div>
-                                    <div className="flex gap-2 pt-2">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setMode('login')}
-                                            className="flex-1 py-3 bg-[var(--border-primary)] text-[var(--text-primary)] font-mono text-xs border-b-2 border-black hover:bg-[var(--border-secondary)] uppercase disabled:opacity-50"
-                                            disabled={isLoading}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <Button type="submit" disabled={isLoading || !requestName || !requestReason} className="flex-1 !py-3 !text-xs">
-                                            {isLoading ? "Submitting..." : "Submit"}
+                                    <div className="pt-2">
+                                        <Button type="submit" disabled={isLoading || !requestName || !requestReason} className="w-full !py-3 !text-sm">
+                                            {isLoading ? "Submitting..." : "Submit Application"}
                                         </Button>
                                     </div>
                                 </form>
                              ) : (
-                                 <div className="text-center py-8">
-                                     <div className="mb-4 text-[var(--accent-primary)]">
-                                        <Gear className="h-12 w-12 mx-auto animate-spin" />
+                                 <div className="space-y-6">
+                                     <div className="space-y-2">
+                                        <label htmlFor="status-name" className="block text-[10px] text-heavy-yellow font-mono uppercase mb-1">Operative Name</label>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                id="status-name"
+                                                type="text" 
+                                                value={statusCheckName}
+                                                onChange={e => setStatusCheckName(e.target.value)}
+                                                className="flex-1 bg-asphalt border border-industrial-gray p-2 text-white font-mono uppercase focus:border-heavy-yellow outline-none"
+                                                disabled={isCheckingStatus}
+                                                onKeyPress={e => e.key === 'Enter' && handleStatusCheck()}
+                                            />
+                                            <Button onClick={handleStatusCheck} disabled={isCheckingStatus || !statusCheckName} className="!py-2 !px-4 !text-xs">Check</Button>
+                                        </div>
                                      </div>
-                                     <p className="text-[var(--text-primary)] font-mono uppercase text-sm mb-2">Request Transmitted</p>
-                                     <p className="text-[var(--text-muted)] text-xs font-mono">Status: Pending Admin Approval.</p>
-                                     <button 
-                                        onClick={() => { setMode('login'); setRequestSubmitted(false); }}
-                                        className="mt-6 text-[var(--accent-primary)] text-xs font-mono underline uppercase"
-                                     >
-                                        Return to Gate
-                                     </button>
+                                     <div className="min-h-[150px] flex items-center justify-center">
+                                        {renderRequestStatus()}
+                                     </div>
                                  </div>
                              )}
                         </div>
@@ -161,7 +221,7 @@ const AuthScreen: React.FC = () => {
                 </div>
                 
                 <div className="bg-[var(--bg-input)] p-2 border-t-2 border-[var(--border-primary)] flex justify-between text-[8px] font-mono text-[var(--text-muted)] uppercase">
-                    <span>Sys_Ver: 6.0.0-PROD</span>
+                    <span>Sys_Ver: 6.1.0-PROD</span>
                     <span>Iron Media Security</span>
                 </div>
             </div>

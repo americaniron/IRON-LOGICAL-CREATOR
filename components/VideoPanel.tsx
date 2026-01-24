@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Task, FABRICATION_COSTS } from '../types';
 import { useApiKeyManager } from '../hooks/useApiKeyManager';
@@ -11,7 +12,7 @@ import Spinner from './common/Spinner';
 import ProviderKeyPrompt from './common/ProviderKeyPrompt';
 import { useVeo } from '../hooks/useVeo';
 import { upscaleVideo, downloadAsset } from '../services/geminiService';
-import { Download, Maximize, Video } from './common/Icons';
+import { Download, Maximize, Video, Gear } from './common/Icons';
 
 interface VideoPanelProps {
   task: Task.TextToVideo | Task.ImageToVideo;
@@ -38,7 +39,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
   const [upscaleError, setUpscaleError] = useState<string | null>(null);
 
   const { addAsset, hasSufficientCredits, consumeCredits } = useAppContext();
-  const { isKeyRequired, isReady, saveKey } = useApiKeyManager('gemini_pro');
+  const { isKeyRequired, isReady, saveKey, resetKey } = useApiKeyManager('gemini_pro', { model });
   const { isLoading, error, resultUrl, progressMessage, estimatedTimeRemaining, generateVideo } = useVeo();
 
   const cost = task === Task.TextToVideo ? FABRICATION_COSTS[Task.TextToVideo] : FABRICATION_COSTS[Task.ImageToVideo];
@@ -129,6 +130,18 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
 
   const currentVideoUrl = upscaledUrl || resultUrl;
 
+  const isQuotaError = useMemo(() => {
+    if (!error) return false;
+    const lowerError = error.toLowerCase();
+    return lowerError.includes('quota') || lowerError.includes('429') || lowerError.includes('resource_exhausted') || lowerError.includes('limit');
+  }, [error]);
+
+  const isProjectError = useMemo(() => {
+    if (!error) return false;
+    const lowerError = error.toLowerCase();
+    return lowerError.includes('project error') || lowerError.includes('404') || lowerError.includes('not found');
+  }, [error]);
+
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 md:gap-8 w-full h-full pb-20 lg:pb-0">
       <div className="control-panel p-4 md:p-8 flex flex-col h-full overflow-y-auto scrollbar-thin">
@@ -151,6 +164,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
               label="BASE_FRAME"
               onFileChange={handleFileChange}
               preview={imageFile?.preview}
+              disabled={isKeyRequired}
             />
           )}
           
@@ -165,6 +179,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
               rows={3}
               className="w-full px-4 py-3 bg-asphalt border-2 border-industrial-gray text-white focus:outline-none focus:border-heavy-yellow font-mono shadow-inner transition-colors text-xs uppercase"
               required={task === Task.TextToVideo}
+              disabled={isKeyRequired}
             />
           </div>
 
@@ -177,6 +192,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
             value={duration}
             onChange={(e) => setDuration(parseInt(e.target.value, 10))}
             displayValue={`${duration}s`}
+            disabled={isKeyRequired}
           />
 
           <div className="grid grid-cols-2 gap-4 md:gap-6">
@@ -186,6 +202,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
               options={aspectRatios.map(r => ({ value: r, label: r }))}
+              disabled={isKeyRequired}
             />
             <Select
                 label="FIDELITY"
@@ -193,6 +210,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
                 options={resolutionOptions}
+                disabled={isKeyRequired}
             />
           </div>
 
@@ -205,6 +223,7 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
                   value: m, 
                   label: m.includes('fast') ? 'RAPID (15S)' : 'ENTERPRISE (60S)' 
               }))}
+              disabled={isKeyRequired}
             />
 
           <div className="flex items-center gap-4">
@@ -238,10 +257,35 @@ const VideoPanel: React.FC<VideoPanelProps> = ({ task }) => {
         {isUpscaling && <Spinner text="ENHANCING VISUALS..." />}
         
         {error && (
-            <div className="text-center space-y-4 p-6 bg-red-900/20 border-2 border-red-500 max-w-md mx-auto">
+            <div className="text-center space-y-4 p-6 bg-red-900/20 border-2 border-red-500 max-w-md mx-auto z-50">
                 <p className="text-red-500 font-['Black_Ops_One'] uppercase tracking-widest text-lg">!! FAILURE !!</p>
-                <p className="font-mono text-[9px] text-red-400 uppercase tracking-tighter whitespace-pre-wrap leading-relaxed">{error}</p>
-                <Button onClick={() => window.location.reload()} variant="danger" className="mx-auto mt-4 !text-[10px] !py-2 !px-4">REBOOT SYSTEM</Button>
+                <div className="font-mono text-[9px] text-red-400 uppercase tracking-tighter whitespace-pre-wrap leading-relaxed">
+                    {error}
+                </div>
+                
+                <div className="flex flex-col gap-2 mt-4">
+                  {(isQuotaError || isProjectError) && (
+                    <Button 
+                      onClick={() => resetKey()} 
+                      className="mx-auto !text-[10px] !py-3 !px-6"
+                    >
+                      <Gear className="h-3 w-3 mr-2 animate-spin" />
+                      RE-AUTHORIZE ENGINE
+                    </Button>
+                  )}
+                  <Button onClick={() => window.location.reload()} variant="danger" className="mx-auto !text-[10px] !py-2 !px-4">REBOOT SYSTEM</Button>
+                </div>
+                
+                {isQuotaError && (
+                  <a 
+                    href="https://ai.google.dev/gemini-api/docs/billing" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="block mt-4 text-[8px] font-mono text-gray-500 underline uppercase hover:text-white transition-colors"
+                  >
+                    Review Billing & Plan Documentation
+                  </a>
+                )}
             </div>
         )}
         

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { AccessRequest, UserAccount } from '../types';
 import Button from './common/Button';
-import Input from './common/Input';
-import { User, X, Gear, Crane } from './common/Icons';
+import { User, Check, X, Gear, Crane } from './common/Icons';
 
 const UserManagementRow: React.FC<{ user: UserAccount, onAllocate: (id: string, amount: number) => void }> = ({ user, onAllocate }) => {
     const [amount, setAmount] = useState('500');
@@ -51,7 +50,8 @@ const AdminPanel: React.FC = () => {
         return <div className="p-8 text-center text-red-600 font-black font-mono text-2xl animate-pulse">!! ACCESS_VIOLATION: COMMANDER_LEVEL_REQUIRED !!</div>;
     }
 
-    const pendingRequests = accessRequests.filter(r => r.status === 'pending');
+    const pendingRequests = useMemo(() => accessRequests.filter(r => r.status === 'pending'), [accessRequests]);
+    const resolvedRequests = useMemo(() => accessRequests.filter(r => r.status !== 'pending').sort((a,b) => b.timestamp - a.timestamp), [accessRequests]);
 
     return (
         <div className="h-full flex flex-col gap-6">
@@ -81,31 +81,55 @@ const AdminPanel: React.FC = () => {
 
              <div className="flex-1 overflow-hidden">
                 {view === 'requests' ? (
-                    <div className="bg-asphalt border-4 border-industrial-gray p-6 h-full flex flex-col">
-                        <h4 className="text-heavy-yellow font-black uppercase tracking-widest font-mono mb-6 pb-2 border-b border-industrial-gray">Incoming_Clearance_Applications</h4>
-                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin">
-                            {pendingRequests.length === 0 ? (
-                                <div className="text-gray-700 font-mono text-sm uppercase text-center mt-20 flex flex-col items-center gap-4">
-                                    <Crane className="h-16 w-16 opacity-10" />
-                                    <span>Signal_Queue_Clear</span>
-                                </div>
-                            ) : (
-                                pendingRequests.map((req) => (
-                                    <div key={req.id} className="p-6 bg-black border-2 border-industrial-gray flex justify-between items-center group hover:border-heavy-yellow transition-colors">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-3">
-                                                <User className="h-5 w-5 text-heavy-yellow" />
-                                                <span className="text-white font-black font-mono uppercase text-lg">{req.name}</span>
-                                            </div>
-                                            <p className="text-xs text-gray-500 font-mono uppercase italic border-l-2 border-heavy-yellow pl-4">"{req.reason}"</p>
-                                        </div>
-                                        <div className="flex gap-3">
-                                            <Button onClick={() => approveRequest(req.id)} className="!py-3 !px-6 !text-xs">AUTHORIZE</Button>
-                                            <Button onClick={() => denyRequest(req.id)} variant="danger" className="!py-3 !px-6 !text-xs">DENY</Button>
-                                        </div>
+                    <div className="bg-asphalt border-4 border-industrial-gray p-6 h-full flex flex-col gap-6">
+                        <div>
+                            <h4 className="text-heavy-yellow font-black uppercase tracking-widest font-mono mb-4 pb-2 border-b-2 border-industrial-gray">Incoming_Clearance_Applications</h4>
+                            <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-thin pr-2">
+                                {pendingRequests.length === 0 ? (
+                                    <div className="text-gray-700 font-mono text-sm uppercase text-center py-10 flex flex-col items-center gap-4">
+                                        <Crane className="h-16 w-16 opacity-10" />
+                                        <span>Signal_Queue_Clear</span>
                                     </div>
-                                ))
-                            )}
+                                ) : (
+                                    pendingRequests.map((req) => (
+                                        <div key={req.id} className="p-4 bg-black border-2 border-industrial-gray flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group hover:border-heavy-yellow transition-colors">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-3">
+                                                    <User className="h-5 w-5 text-heavy-yellow" />
+                                                    <span className="text-white font-black font-mono uppercase text-lg">{req.name}</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 font-mono uppercase italic border-l-2 border-heavy-yellow pl-4">"{req.reason}"</p>
+                                            </div>
+                                            <div className="flex gap-3 self-end sm:self-center">
+                                                <Button onClick={() => approveRequest(req.id)} className="!py-3 !px-6 !text-xs">AUTHORIZE</Button>
+                                                <Button onClick={() => denyRequest(req.id)} variant="danger" className="!py-3 !px-6 !text-xs">DENY</Button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex-1 flex flex-col">
+                           <h4 className="text-gray-500 font-black uppercase tracking-widest font-mono mb-4 pb-2 border-b-2 border-industrial-gray">Request_Log</h4>
+                            <div className="flex-1 overflow-y-auto space-y-2 pr-2 scrollbar-thin">
+                                {resolvedRequests.map(req => (
+                                    <div key={req.id} className={`p-3 bg-black border-l-4 flex justify-between items-center ${req.status === 'approved' ? 'border-green-500' : 'border-red-500'}`}>
+                                        <div className="flex items-center gap-4">
+                                            {req.status === 'approved' ? <Check className="h-5 w-5 text-green-500" /> : <X className="h-5 w-5 text-red-500" />}
+                                            <div>
+                                                <p className="text-white font-mono uppercase font-bold">{req.name}</p>
+                                                <p className="text-[9px] font-mono text-gray-600">{new Date(req.timestamp).toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                        {req.status === 'approved' && (
+                                            <div className="text-right">
+                                                <p className="text-[8px] uppercase font-mono text-gray-500">Assigned Pin</p>
+                                                <p className="font-mono text-heavy-yellow font-black text-lg tracking-widest">{req.generatedPin}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 ) : (

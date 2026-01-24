@@ -101,7 +101,7 @@ export const useVeo = () => {
         throw new Error(`INITIAL SEGMENT FAILED: ${operation.error.message || 'ENGINE FAILURE'}`);
       }
 
-      // Check for successful response but missing data (sometimes returned as "UNKNOWN" state in internal logs)
+      // Check for successful response but missing data
       let currentVideo = operation.response?.generatedVideos?.[0]?.video;
       
       if (!currentVideo?.uri && operation.done) {
@@ -151,10 +151,35 @@ export const useVeo = () => {
       }
     } catch (err) {
         if (isMounted.current) {
-            let errorMessage = err instanceof Error ? err.message : 'UNEXPECTED SYSTEM CRASH.';
+            let errorMessage = "UNKNOWN FABRICATION ERROR.";
+        
+            // Step 1: Get a string representation of the error.
+            let rawMessage = "";
+            if (err instanceof Error) {
+                rawMessage = err.message;
+            } else if (typeof err === 'object' && err !== null) {
+                const anyErr = err as any;
+                rawMessage = anyErr.error?.message || anyErr.message || JSON.stringify(err);
+            } else {
+                rawMessage = String(err);
+            }
 
-            if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('resource_exhausted')) {
-                errorMessage = '!! QUOTA EXHAUSTED !!\nSYSTEM HAS REACHED GENERATION LIMITS. PLEASE CHECK BILLING OR WAIT FOR RESET.';
+            // Step 2: Check if the message is stringified JSON and extract the real message.
+            if (rawMessage.trim().startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(rawMessage);
+                    rawMessage = parsed.error?.message || parsed.message || rawMessage;
+                } catch (e) { /* ignore parse error */ }
+            }
+
+            // Step 3: Set the final user-facing error message based on keywords.
+            const lowerMsg = rawMessage.toLowerCase();
+            if (lowerMsg.includes('429') || lowerMsg.includes('quota') || lowerMsg.includes('resource_exhausted') || lowerMsg.includes('limit')) {
+                errorMessage = '!! QUOTA EXHAUSTED !!\nSYSTEM HAS REACHED GENERATION LIMITS. VEO MODELS REQUIRE A PAID PROJECT WITH ACTIVE BILLING. PLEASE RE-AUTHORIZE WITH A PAID KEY.';
+            } else if (lowerMsg.includes('404') || lowerMsg.includes('requested entity was not found')) {
+                errorMessage = '!! PROJECT ERROR !!\nTHE SELECTED API PROJECT WAS NOT FOUND OR DOES NOT SUPPORT VEO. PLEASE RE-AUTHORIZE WITH A PAID PROJECT.';
+            } else {
+                errorMessage = rawMessage;
             }
 
             setError(errorMessage.toUpperCase());

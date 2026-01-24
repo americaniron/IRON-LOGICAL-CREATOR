@@ -1,9 +1,12 @@
-import { GoogleGenAI, GenerateContentResponse, Modality, LiveServerMessage, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Modality, LiveServerMessage, HarmCategory, HarmBlockThreshold, LiveSession } from "@google/genai";
 
-// Create a new instance right before making an API call to ensure it uses the most up-to-date key.
+// The API key is embedded directly. Assumes process.env.API_KEY is available.
 const getAI = () => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    // This is a developer/environment error, not a user-facing one.
+    throw new Error("!! CRITICAL: GEMINI_API_KEY environment variable not configured. !!");
+  }
   return new GoogleGenAI({ apiKey });
 };
 
@@ -177,31 +180,30 @@ export const connectLiveSession = (callbacks: {
     onmessage: (message: LiveServerMessage) => void,
     onerror: (e: ErrorEvent) => void,
     onclose: (e: CloseEvent) => void,
-}) => {
-    const ai = getAI();
-    if (!ai) {
-      throw new Error("!! CRITICAL: Comm_Engine offline. Check API_KEY clearance. !!");
-    }
-    return ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
-        callbacks: callbacks,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+}): Promise<LiveSession> => {
+    try {
+      const ai = getAI();
+      return Promise.resolve(ai.live.connect({
+          model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+          callbacks: callbacks,
+          config: {
+            responseModalities: [Modality.AUDIO],
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+            },
+            safetySettings: safetySettings,
+            temperature: 0.2,
           },
-          safetySettings: safetySettings,
-          temperature: 0.2,
-        },
-    });
+      }));
+    } catch(error) {
+        return Promise.reject(error);
+    }
 };
 
 export const generateChatResponse = async (prompt: string): Promise<string> => {
   const ai = getAI();
-  if (!ai) throw new Error("!! CRITICAL: CORE_AI_OFFLINE. CHECK_GEMINI_KEY. !!");
-  
   try {
     const chat = ai.chats.create({ 
         model: 'gemini-3-flash-preview',
@@ -221,8 +223,6 @@ export const generateChatResponse = async (prompt: string): Promise<string> => {
 
 export const generateImage = async (prompt: string, negativePrompt: string, aspectRatio: string, model: string, useGoogleSearch: boolean, resolution?: string, seed?: number): Promise<string> => {
   const ai = getAI();
-  if (!ai) throw new Error("!! CRITICAL: FAB_SHOP_OFFLINE. CHECK_GEMINI_KEY. !!");
-
   try {
     const config: any = {
       imageConfig: {
@@ -266,8 +266,6 @@ export const generateImage = async (prompt: string, negativePrompt: string, aspe
 
 export const generateSpeech = async (text: string, voice: string): Promise<string> => {
     const ai = getAI();
-    if (!ai) throw new Error("!! ACCESS DENIED: PA_SYSTEM REQUIRES API_KEY CLEARANCE. !!");
-  
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -310,8 +308,6 @@ export const startVideoGeneration = async (
   imageFile?: File
 ): Promise<any> => {
   const ai = getAI();
-  if (!ai) throw new Error("!! CRITICAL: VEO_ENGINE_OFFLINE. CHECK_GEMINI_KEY. !!");
-  
   const imagePart = imageFile ? await fileToGenerativePart(imageFile) : undefined;
 
   try {
@@ -341,8 +337,6 @@ export const extendVideoGeneration = async (
   aspectRatio: string
 ): Promise<any> => {
   const ai = getAI();
-  if (!ai) throw new Error("!! CRITICAL: VEO_EXTENSION_RIG_OFFLINE. CHECK_GEMINI_KEY. !!");
-
   try {
     const extensionPrompt = "SYSTEM_DIRECTIVE: EXTEND THE STORYBOARD FLUIDLY. ADHERE TO PREVIOUS FRAME CONTINUITY. DIRECTIVE: " + prompt;
     let operation = await ai.models.generateVideos({
@@ -365,8 +359,6 @@ export const extendVideoGeneration = async (
 
 export const checkVideoOperationStatus = async (operation: any): Promise<any> => {
     const ai = getAI();
-    if (!ai) throw new Error("!! CRITICAL: OPERATION_STATUS_LINK_OFFLINE. CHECK_GEMINI_KEY. !!");
-
     try {
         return await ai.operations.getVideosOperation({ operation: operation });
     } catch(error) {
@@ -378,7 +370,7 @@ export const checkVideoOperationStatus = async (operation: any): Promise<any> =>
 export const fetchVideoResult = async (downloadLink: string): Promise<string> => {
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-        throw new Error("API KEY NOT FOUND FOR VIDEO DOWNLOAD. PLEASE RE-SELECT KEY.");
+        throw new Error("API KEY NOT FOUND FOR VIDEO DOWNLOAD.");
     }
     try {
         const separator = downloadLink.includes('?') ? '&' : '?';

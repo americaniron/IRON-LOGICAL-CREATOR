@@ -77,7 +77,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     root.classList.add(theme === 'dark' ? 'dark' : 'light-theme');
   }, [theme]);
   
-  // Fix: Added missing toggleTheme function definition to satisfy AppContextType and Provide value
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   }, [setTheme]);
@@ -165,12 +164,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleApiError = useCallback((error: unknown, provider: ApiProvider) => {
+      let msg = "";
       if (error instanceof Error) {
-          const msg = error.message.toLowerCase();
-          if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized')) {
-              backend.clearApiKey(provider);
-              window.location.reload();
+          msg = error.message.toLowerCase();
+      } else if (typeof error === 'string') {
+          msg = error.toLowerCase();
+          if (msg.startsWith('{')) {
+              try {
+                  const parsed = JSON.parse(error as string);
+                  msg = (parsed.error?.message || parsed.message || msg).toLowerCase();
+              } catch (e) {}
           }
+      } else {
+          try {
+              msg = JSON.stringify(error).toLowerCase();
+          } catch(e) {
+              msg = "unknown error";
+          }
+      }
+
+      // 401/403/invalid: Key is invalid or unauthorized
+      if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized') || msg.includes('invalid api key')) {
+          console.error(`Authorization error for ${provider}. The hardcoded API key may be invalid. Reloading session.`);
+          // Reload to reset state. The user no longer manages keys, so we don't prompt them.
+          window.location.reload();
+      }
+
+      // 429/404/Quota: Resources exhausted
+      if (msg.includes('429') || msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('limit exceeded')) {
+          console.warn(`[${provider}] CRITICAL_RESOURCE_EXHAUSTED: ${msg}`);
+          // Components using the corresponding provider hooks handle the specific UI/UX for re-selection.
       }
   }, []);
 
