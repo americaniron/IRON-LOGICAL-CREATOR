@@ -338,6 +338,7 @@ export const extendVideoGeneration = async (
 ): Promise<any> => {
   const ai = getAI();
   try {
+    // CRITICAL: Extension MUST use 720p. The input video MUST also have been 720p.
     const extensionPrompt = "SYSTEM_DIRECTIVE: EXTEND THE STORYBOARD FLUIDLY. ADHERE TO PREVIOUS FRAME CONTINUITY. DIRECTIVE: " + prompt;
     let operation = await ai.models.generateVideos({
       model: 'veo-3.1-generate-preview',
@@ -345,7 +346,7 @@ export const extendVideoGeneration = async (
       video: previousVideo,
       config: {
         numberOfVideos: 1,
-        resolution: '720p', // Extension requires 720p
+        resolution: '720p', 
         aspectRatio: aspectRatio as '16:9' | '9:16',
         temperature: 0.2,
       }

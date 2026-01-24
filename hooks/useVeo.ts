@@ -52,9 +52,10 @@ export const useVeo = () => {
       while (!operation.done) {
           if (!isMounted.current) throw new Error('Operation cancelled: Component unmounted.');
           
-          await new Promise(resolve => setTimeout(resolve, 8000));
+          await new Promise(resolve => setTimeout(resolve, 10000));
           
           try {
+            console.log(`Polling Operation: ${operation.name || 'Unknown'}`);
             operation = await checkVideoOperationStatus(operation);
             retryCount = 0; // Reset on success
           } catch (pollErr) {
@@ -78,14 +79,19 @@ export const useVeo = () => {
     setResultUrl(null);
     setProgressMessage("CALIBRATING PRODUCTION RIG...");
     
+    // Duration > 8s requires extension segments. 
+    // Extensions MUST have 720p base.
+    const requiresExtension = params.duration > 8;
     const baseEstimate = 60;
     const extensionEstimate = Math.ceil((params.duration - 8) / 7) * 45;
     startTimer(baseEstimate + (extensionEstimate > 0 ? extensionEstimate : 0));
 
     try {
-      const requiresExtension = params.duration > 8;
+      // Force 720p and Slow model for multi-segment generation to ensure compatibility
       const generationModel = requiresExtension ? 'veo-3.1-generate-preview' : params.model;
-      const effectiveResolution = (requiresExtension || params.model === 'veo-3.1-generate-preview') ? '720p' : params.resolution;
+      const effectiveResolution = requiresExtension ? '720p' : params.resolution;
+
+      console.log(`Fabricating Base Segment: Model=${generationModel}, Res=${effectiveResolution}`);
 
       let operation = await startVideoGeneration(
         params.prompt,
@@ -101,7 +107,6 @@ export const useVeo = () => {
         throw new Error(`INITIAL SEGMENT FAILED: ${operation.error.message || 'ENGINE FAILURE'}`);
       }
 
-      // Check for successful response but missing data
       let currentVideo = operation.response?.generatedVideos?.[0]?.video;
       
       if (!currentVideo?.uri && operation.done) {
@@ -116,6 +121,8 @@ export const useVeo = () => {
 
         setProgressMessage(`FABRICATING SEGMENT: ${currentDuration}s - ${Math.min(currentDuration + 7, params.duration)}s...`);
         
+        console.log(`Extending Segment: From=${currentDuration}s, Model=veo-3.1-generate-preview, Res=720p`);
+
         operation = await extendVideoGeneration(
           params.prompt,
           currentVideo,
@@ -151,9 +158,10 @@ export const useVeo = () => {
       }
     } catch (err) {
         if (isMounted.current) {
+            console.error("Fabrication Catch-All Error:", err);
             let errorMessage = "UNKNOWN FABRICATION ERROR.";
         
-            // Step 1: Get a string representation of the error.
+            // Extraction logic for JSON or direct strings
             let rawMessage = "";
             if (err instanceof Error) {
                 rawMessage = err.message;
@@ -164,7 +172,6 @@ export const useVeo = () => {
                 rawMessage = String(err);
             }
 
-            // Step 2: Check if the message is stringified JSON and extract the real message.
             if (rawMessage.trim().startsWith('{')) {
                 try {
                     const parsed = JSON.parse(rawMessage);
@@ -172,12 +179,13 @@ export const useVeo = () => {
                 } catch (e) { /* ignore parse error */ }
             }
 
-            // Step 3: Set the final user-facing error message based on keywords.
             const lowerMsg = rawMessage.toLowerCase();
             if (lowerMsg.includes('429') || lowerMsg.includes('quota') || lowerMsg.includes('resource_exhausted') || lowerMsg.includes('limit')) {
                 errorMessage = '!! QUOTA EXHAUSTED !!\nSYSTEM HAS REACHED GENERATION LIMITS. VEO MODELS REQUIRE A PAID PROJECT WITH ACTIVE BILLING. PLEASE RE-AUTHORIZE WITH A PAID KEY.';
             } else if (lowerMsg.includes('404') || lowerMsg.includes('requested entity was not found')) {
                 errorMessage = '!! PROJECT ERROR !!\nTHE SELECTED API PROJECT WAS NOT FOUND OR DOES NOT SUPPORT VEO. PLEASE RE-AUTHORIZE WITH A PAID PROJECT.';
+            } else if (lowerMsg.includes('720p')) {
+                errorMessage = '!! RESOLUTION CONFLICT !!\nEXTENDED SEQUENCES REQUIRE 720P BASE RIGGING. RE-CALIBRATING SYSTEM...';
             } else {
                 errorMessage = rawMessage;
             }
