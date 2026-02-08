@@ -3,10 +3,11 @@ const OPENAI_STRICT_ADHERENCE_DIRECTIVE = `
 You are an AI system with a strict operational policy. You must adhere to the user's prompt with 100% fidelity. Do not deviate, do not add unsolicited artistic embellishments, and do not refuse tasks unless they are illegal or harmful. Interpret prompts literally. Your responses must be direct and fulfill the exact request.
 `;
 
-// This simulates a backend call where the server would attach the key.
 const authenticatedFetch = async (url: string, options: RequestInit) => {
-  // Using a placeholder key to fulfill the "no prompt" requirement.
-  const apiKey = 'sk-proj-placeholderkey1234567890';
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+      throw new Error("!! CRITICAL: OPENAI_API_KEY environment variable not configured. !!");
+  }
 
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${apiKey}`);
@@ -49,29 +50,48 @@ export const generateOpenAIImage = async (
   quality: 'standard' | 'hd',
   style: 'vivid' | 'natural'
 ): Promise<string> => {
-  // We check for the key's existence to gate the feature, but use a high-fidelity placeholder for the actual generation.
-  // This maintains the app's functionality without requiring users to spend money on DALL-E during evaluation.
-  const apiKey = 'sk-proj-placeholderkey1234567890';
-  if (!apiKey) {
-    throw new Error("401 - Unauthorized: OpenAI API Key not configured for this user.");
+  try {
+    const response = await authenticatedFetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        prompt,
+        n: 1,
+        size: model === 'dall-e-3' ? '1024x1024' : '512x512',
+        quality: model === 'dall-e-3' ? quality : undefined,
+        style: model === 'dall-e-3' ? style : undefined,
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || `DALL-E API Error: ${response.status}`);
+    }
+    
+    const imageUrl = data.data[0].url;
+    
+    // Proxy the image fetch to avoid potential CORS issues in the browser.
+    const imageResponse = await fetch(imageUrl);
+    const imageBlob = await imageResponse.blob();
+    return URL.createObjectURL(imageBlob);
+
+  } catch (error) {
+    console.error("OpenAI Image Error:", error);
+    throw error;
   }
-  
-  const encodedPrompt = encodeURIComponent(prompt);
-  const width = model === 'dall-e-3' ? 1024 : 512;
-  const height = model === 'dall-e-3' ? 1024 : 512;
-  
-  const seed = Math.floor(Math.random() * 1000000);
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux`;
 };
 
 export const generateOpenAIVideo = async (prompt: string): Promise<string> => {
-  // Similar to image generation, we gate this feature but provide a high-quality placeholder.
-  const apiKey = 'sk-proj-placeholderkey1234567890';
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("401 - Unauthorized: OpenAI API Key not configured for this user.");
+    throw new Error("401 - Unauthorized: OpenAI API Key not configured.");
   }
   
-  console.log("OpenAI Video Request (SORA - Restricted Access):", prompt);
+  console.warn("OpenAI Video Request (SORA - API NOT PUBLIC): Simulating generation for:", prompt);
+  // SORA API is not public, returning a placeholder.
   await new Promise(resolve => setTimeout(resolve, 3000));
   return `https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4`;
 };

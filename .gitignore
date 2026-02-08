@@ -12,21 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Environment files (NEVER commit these!)
-.env
-.env.local
-.env.production
-.env.*.local
-
-# Server build output
-server/dist
-server/node_modules
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -37,8 +22,3 @@ server/node_modules
 *.njsproj
 *.sln
 *.sw?
-
-# Temporary files
-tmp/
-temp/
-*.tmp
