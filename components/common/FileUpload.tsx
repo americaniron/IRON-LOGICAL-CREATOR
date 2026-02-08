@@ -1,17 +1,20 @@
-
 import React, { useCallback } from 'react';
 import { UploadCloud, X } from './Icons';
+import Button from './Button';
 
 interface FileUploadProps {
   label: string;
   onFileChange: (file: File | null) => void;
   preview?: string;
+  disabled?: boolean;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ label, onFileChange, preview }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ label, onFileChange, preview, disabled }) => {
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     onFileChange(file);
+    // Reset input value to allow re-uploading the same file
+    event.target.value = '';
   }, [onFileChange]);
   
   const handleClear = () => {
@@ -19,29 +22,28 @@ const FileUpload: React.FC<FileUploadProps> = ({ label, onFileChange, preview })
   }
 
   return (
-    <div className="relative">
-      <div className="rivet absolute -top-1 -right-1"></div>
-      <label className="block text-xs font-black uppercase tracking-widest text-[#EBB700] mb-2 font-mono">// {label} _</label>
-      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-4 border-[#3F4042] border-dashed bg-black/40 hover:bg-black/60 transition-colors group">
+    <div>
+      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">{label}</label>
+      <div className="mt-1 flex justify-center p-6 border-2 border-[var(--border-primary)] border-dashed rounded-md bg-[var(--bg-input)] hover:border-[var(--accent-primary)] transition-colors group">
         {preview ? (
-          <div className="relative border-2 border-[#EBB700] p-2 bg-black shadow-2xl">
-             <img src={preview} alt="Preview" className="max-h-48 grayscale hover:grayscale-0 transition-all" />
-             <button onClick={handleClear} className="absolute -top-3 -right-3 bg-red-600 rounded-none p-1 text-white hover:bg-red-500 shadow-lg border border-black">
-                <X className="h-5 w-5" />
+          <div className="relative">
+             <img src={preview} alt="Preview" className="max-h-40 rounded-md" />
+             <button onClick={handleClear} className="absolute -top-2 -right-2 bg-red-600 rounded-full p-1 text-white hover:bg-red-500 shadow-lg border-2 border-[var(--bg-secondary)]" aria-label="Remove image">
+                <X className="h-4 w-4" />
              </button>
           </div>
         ) : (
-          <div className="space-y-4 text-center">
-            <UploadCloud className="mx-auto h-16 w-16 text-gray-700 group-hover:text-[#EBB700] transition-colors" />
-            <div className="flex flex-col items-center gap-2 text-sm text-gray-500">
+          <div className="space-y-2 text-center">
+            <UploadCloud className="mx-auto h-12 w-12 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors" />
+            <div className="flex text-sm text-[var(--text-secondary)]">
               <label
                 htmlFor="file-upload"
-                className="relative cursor-pointer bg-[#2D2E30] px-4 py-2 text-white font-black uppercase tracking-wider hover:bg-[#3F4042] border border-[#3F4042]"
+                className="relative cursor-pointer bg-[var(--bg-secondary)] rounded-md font-medium text-[var(--accent-primary)] hover:text-[var(--accent-secondary)] px-2"
               >
-                <span>OPEN CARGO</span>
-                <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" />
+                <span>Upload a file</span>
+                <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" disabled={disabled} />
               </label>
-              <p className="font-mono text-[10px]">DROP ASSET INTO BAY</p>
+              <p className="pl-1">or drag and drop</p>
             </div>
           </div>
         )}

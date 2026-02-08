@@ -26,15 +26,15 @@ const CreditGauge: React.FC = () => {
     const percentage = Math.min((userCredits / max) * 100, 100);
     
     return (
-        <div className="flex items-center gap-2 md:gap-4 bg-black/40 px-3 md:px-4 py-1.5 border border-industrial-gray shadow-inner hidden sm:flex">
-            <span className="text-[8px] md:text-[9px] font-mono text-heavy-yellow uppercase font-bold tracking-widest hidden lg:inline">System_Energy:</span>
-            <div className="w-20 md:w-32 h-2 bg-gray-900 border border-industrial-gray relative overflow-hidden">
+        <div className="flex items-center gap-2 md:gap-3 bg-[var(--bg-secondary)] px-3 py-1.5 border border-[var(--border-primary)] rounded-md hidden sm:flex">
+            <span className="text-[10px] font-semibold text-[var(--text-secondary)] hidden lg:inline">Credits:</span>
+            <div className="w-20 md:w-24 h-2 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-full overflow-hidden">
                 <div 
-                    className="h-full bg-heavy-yellow shadow-[0_0_10px_var(--heavy-yellow)] transition-all duration-500" 
+                    className="h-full bg-[var(--accent-primary)] transition-all duration-500" 
                     style={{ width: `${percentage}%` }}
                 ></div>
             </div>
-            <span className="text-[9px] md:text-[10px] font-mono text-white font-black">{userCredits} IC</span>
+            <span className="text-[10px] font-mono text-[var(--text-primary)] font-bold">{userCredits}</span>
         </div>
     );
 };
@@ -44,8 +44,8 @@ const AppContent: React.FC = () => {
 
   if (isAuthenticating) {
     return (
-      <div className="fixed inset-0 z-[100] bg-[var(--industrial-black)] flex items-center justify-center">
-        <Spinner text="VERIFYING OPERATIVE CLEARANCE..." />
+      <div className="fixed inset-0 z-[100] bg-[var(--bg-primary)] flex items-center justify-center">
+        <Spinner text="Verifying Access..." />
       </div>
     );
   }
@@ -77,30 +77,29 @@ const AppContent: React.FC = () => {
       {showOnboarding && <OnboardingModal onClose={closeOnboarding} />}
       <Sidebar />
       {isSidebarOpen && (
-          <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"></div>
+          <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"></div>
       )}
       <div className="flex flex-col flex-1 relative overflow-hidden h-full">
-        {/* Decorative borders - hidden on mobile for more space */}
-        <div className="absolute inset-0 pointer-events-none border-4 sm:border-8 border-[var(--border-secondary)] z-30 hidden lg:block"></div>
-        
         <Header />
         
-        <main className="flex-1 p-2 sm:p-4 md:p-6 overflow-y-auto relative z-10 scrollbar-thin">
-          <div className="w-full h-full max-w-[1600px] mx-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto relative z-10 scrollbar-thin bg-[var(--bg-primary)]">
+          <div className="w-full h-full max-w-7xl mx-auto">
             {renderContent()}
           </div>
         </main>
 
-        <footer className="h-10 sm:h-12 bg-black border-t-2 border-industrial-gray flex items-center px-4 sm:px-6 z-20 shrink-0">
+        <footer className="h-12 bg-[var(--bg-secondary)] border-t border-[var(--border-primary)] flex items-center px-4 sm:px-6 z-20 shrink-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4 md:gap-6">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-heavy-yellow shadow-[0_0_8px_var(--heavy-yellow)] animate-pulse"></div>
-                <span className="text-[8px] md:text-[10px] font-mono text-gray-500 uppercase tracking-widest font-bold">LINK: <span className="text-white">ACTIVE</span></span>
+                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] animate-pulse"></div>
+                <span className="text-xs font-mono text-[var(--text-muted)]">Status: <span className="text-[var(--text-primary)]">Online</span></span>
               </div>
-              <CreditGauge />
             </div>
-            <p className="text-[8px] md:text-[10px] font-mono text-gray-700 uppercase tracking-[0.2em] md:tracking-widest">IM_SITE_V6.1</p>
+            <div className="flex items-center gap-4">
+              <CreditGauge />
+              <p className="text-xs font-mono text-[var(--text-muted)]">v1.0</p>
+            </div>
           </div>
         </footer>
       </div>

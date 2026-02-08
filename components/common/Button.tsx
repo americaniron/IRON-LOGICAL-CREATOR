@@ -6,32 +6,28 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary', ...props }) => {
-  const baseStyles = "industrial-btn relative px-8 py-4 text-lg font-bold transition-all active:translate-y-1 active:shadow-none border-x-4 border-b-8 border-t-2 select-none";
+  const baseStyles = "px-6 py-2 text-base font-semibold transition-all duration-150 ease-in-out rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--bg-primary)] select-none";
   
   const variants = {
     primary: `
-      bg-gradient-to-b from-[#FFD300] to-[#EAB308] 
-      text-black border-black border-t-yellow-300
-      shadow-[0_8px_0_#A16207,0_15px_20px_rgba(0,0,0,0.4)]
-      hover:from-yellow-300 hover:to-yellow-500
+      bg-[var(--accent-primary)] text-white
+      hover:bg-[var(--accent-secondary)]
+      focus:ring-[var(--accent-primary)]
     `,
     secondary: `
-      bg-gradient-to-b from-[#3F4042] to-[#2D2E30] 
-      text-white border-black border-t-gray-500
-      shadow-[0_8px_0_#1a1a1a,0_15px_20px_rgba(0,0,0,0.4)]
-      hover:from-gray-600 hover:to-gray-700
+      bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-primary)]
+      hover:bg-[var(--border-primary)]
+      focus:ring-[var(--text-secondary)]
     `,
     danger: `
-      bg-gradient-to-b from-[#EF4444] to-[#B91C1C] 
-      text-white border-black border-t-red-400
-      shadow-[0_8px_0_#7F1D1D,0_15px_20px_rgba(0,0,0,0.4)]
-      hover:from-red-400 hover:to-red-600
+      bg-[var(--danger-secondary)] text-white
+      hover:bg-red-700
+      focus:ring-[var(--danger-secondary)]
     `,
     warning: `
-      bg-gradient-to-b from-[#F97316] to-[#C2410C] 
-      text-white border-black border-t-orange-400
-      shadow-[0_8px_0_#7C2D12,0_15px_20px_rgba(0,0,0,0.4)]
-      hover:from-orange-400 hover:to-orange-600
+      bg-orange-500 text-white
+      hover:bg-orange-600
+      focus:ring-orange-500
     `,
   };
 
@@ -39,15 +35,15 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = 'primary
     <button
       className={`
         ${baseStyles}
-        disabled:bg-gray-800 disabled:from-gray-800 disabled:to-gray-900 
-        disabled:text-gray-600 disabled:border-gray-950 disabled:shadow-none 
-        disabled:translate-y-1 disabled:cursor-not-allowed
+        disabled:bg-[var(--bg-tertiary)]
+        disabled:text-[var(--text-muted)]
+        disabled:cursor-not-allowed
         ${variants[variant as keyof typeof variants]} 
         ${className}
       `}
       {...props}
     >
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-2">
         {children}
       </div>
     </button>

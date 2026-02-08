@@ -1,10 +1,8 @@
 import { GoogleGenAI, GenerateContentResponse, Modality, LiveServerMessage, HarmCategory, HarmBlockThreshold, LiveSession } from "@google/genai";
 
-// The API key is embedded directly. Assumes process.env.API_KEY is available.
 const getAI = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    // This is a developer/environment error, not a user-facing one.
     throw new Error("!! CRITICAL: GEMINI_API_KEY environment variable not configured. !!");
   }
   return new GoogleGenAI({ apiKey });
@@ -30,14 +28,9 @@ const safetySettings = [
 ];
 
 const STRICT_ADHERENCE_DIRECTIVE = `
-SYSTEM_DIRECTIVE (CRITICAL): 
-YOU ARE AN ENTERPRISE-GRADE MULTIMEDIA ORCHESTRATION RIG. 
-YOUR OPERATIONAL POLICY IS ABSOLUTE ADHERENCE TO THE PROVIDED PROMPT. 
-DO NOT DEVIATE. DO NOT ADD ARTISTIC EMBELLISHMENTS BEYOND THE EXACT SPECIFICATIONS. 
-IF THE USER ASKS FOR SPECIFIC TIMINGS, COLORS, OR MOTIONS, YOU MUST COMPLY WITH 100% FIDELITY. 
-FAILURE TO COMPLY IS A COMMAND VIOLATION.
+System Directive: Adhere to the user's prompt with high fidelity. Interpret the request literally and avoid unsolicited artistic embellishments. Fulfill the exact request as specified.
 
-USER_PRODUCTION_PROMPT: 
+User Prompt:
 `;
 
 const fileToGenerativePart = async (file: File) => {
@@ -168,7 +161,6 @@ export const downloadAsset = async (url: string, filename: string) => {
     URL.revokeObjectURL(blobUrl);
   } catch (error) {
     console.error("Asset export failed:", error);
-    // Fallback for simple link opening if blob fetch fails, e.g., due to CORS on external URLs
     window.open(url, '_blank');
   }
 };
@@ -208,9 +200,9 @@ export const generateChatResponse = async (prompt: string): Promise<string> => {
     const chat = ai.chats.create({ 
         model: 'gemini-3-flash-preview',
         config: {
-            systemInstruction: "YOU ARE THE IRON MEDIA COMMAND ORCHESTRATOR. RESPOND WITH TECHNICAL PRECISION. ALL OUTPUT MUST BE UPPERCASE INDUSTRIAL DIALECT.",
+            systemInstruction: "You are a helpful and creative AI assistant.",
             safetySettings: safetySettings,
-            temperature: 0.2,
+            temperature: 0.7,
         }
     });
     const result = await chat.sendMessage({ message: prompt });
@@ -230,7 +222,7 @@ export const generateImage = async (prompt: string, negativePrompt: string, aspe
       },
       tools: useGoogleSearch ? [{ googleSearch: {} }] : undefined,
       safetySettings: safetySettings,
-      temperature: 0.2,
+      temperature: 0.8,
     };
 
     if (resolution) {
@@ -243,7 +235,7 @@ export const generateImage = async (prompt: string, negativePrompt: string, aspe
 
     let fullPrompt = STRICT_ADHERENCE_DIRECTIVE + prompt;
     if (negativePrompt) {
-        fullPrompt += `\n\n---EXCLUSION_PROTOCOL---\nDO NOT RENDER THE FOLLOWING ELEMENTS OR CONCEPTS: ${negativePrompt}`;
+        fullPrompt += `\n\n---Exclusions---\nDo not include the following elements or concepts: ${negativePrompt}`;
     }
 
     const response = await ai.models.generateContent({
@@ -278,7 +270,6 @@ export const generateSpeech = async (text: string, voice: string): Promise<strin
             },
           },
           safetySettings: safetySettings,
-          temperature: 0.2,
         },
       });
   
@@ -321,7 +312,6 @@ export const startVideoGeneration = async (
         numberOfVideos: 1,
         resolution: resolution,
         aspectRatio: aspectRatio as '16:9' | '9:16',
-        temperature: 0.2,
       }
     });
     return operation;
@@ -338,9 +328,7 @@ export const extendVideoGeneration = async (
 ): Promise<any> => {
   const ai = getAI();
   try {
-    // CRITICAL: Extension MUST use 720p. The input video MUST also have been 720p.
-    // The previousVideo object contains the resolution from segment 1.
-    const extensionPrompt = "SYSTEM_DIRECTIVE: EXTEND THE STORYBOARD FLUIDLY. ADHERE TO PREVIOUS FRAME CONTINUITY. DIRECTIVE: " + prompt;
+    const extensionPrompt = "System Directive: Extend the previous scene fluidly, maintaining continuity. User Directive: " + prompt;
     let operation = await ai.models.generateVideos({
       model: 'veo-3.1-generate-preview',
       prompt: extensionPrompt,
@@ -349,7 +337,6 @@ export const extendVideoGeneration = async (
         numberOfVideos: 1,
         resolution: '720p', 
         aspectRatio: aspectRatio as '16:9' | '9:16',
-        temperature: 0.2,
       }
     });
     return operation;

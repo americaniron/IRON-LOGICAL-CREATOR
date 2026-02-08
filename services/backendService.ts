@@ -14,40 +14,6 @@ const db = {
   saveChats: (userId: string, chats: Record<Task, Message[]>) => localStorage.setItem(`im_db_chats_${userId}`, JSON.stringify(chats)),
 };
 
-// Seed initial system admin with an integrity check on every boot.
-const seedSystem = () => {  
-  const users = db.users();
-  const adminUser = users.find(u => u.id === 'admin_001' && u.role === 'admin');
-
-  if (adminUser) {
-    // If the admin user exists but the PIN is incorrect, reset it.
-    // This ensures the default admin PIN is always available and corrects corruption.
-    if (adminUser.pin !== '01970') {
-        adminUser.pin = '01970';
-        console.warn("IRON MEDIA ORCHESTRATOR :: Admin PIN integrity compromised. Resetting to default.");
-        db.saveUsers(users);
-    }
-  } else {
-    // If no admin user exists, create one. This handles initial setup or a cleared database.
-    // Filter out any potential non-admin user with the same ID to prevent duplicates.
-    const otherUsers = users.filter(u => u.id !== 'admin_001');
-    otherUsers.push({ 
-        id: 'admin_001', 
-        name: 'COMMANDER_Z', 
-        pin: '01970', 
-        role: 'admin', 
-        credits: 999999, 
-        plan: 'commander',
-        joinedAt: Date.now() 
-    });
-    db.saveUsers(otherUsers);
-    console.log("IRON MEDIA ORCHESTRATOR :: Default admin credentials seeded.");
-  }
-};
-seedSystem();
-
-// Using localStorage for SESSION_KEY ensures the operative stays logged in
-// even after the browser is closed, facilitating frequent usage.
 const SESSION_KEY = 'im_persistent_session_token';
 
 // --- CORE UTILITIES ---
@@ -73,7 +39,6 @@ export const checkSession = async (): Promise<UserSession | null> => {
     const session = getSession();
     if (!session) return null;
     
-    // Refresh user data from DB to ensure credits are up to date
     const users = db.users();
     const user = users.find(u => u.id === session.id);
     if (!user) return null;
@@ -84,10 +49,45 @@ export const checkSession = async (): Promise<UserSession | null> => {
 export const login = async (pin: string): Promise<{ success: boolean; session?: UserSession, message?: string }> => {
     await new Promise(res => setTimeout(res, 800));
     const users = db.users();
+
+    // Special handling for the hardcoded admin PIN to ensure access is always available and self-healing.
+    if (pin === '01970') {
+        let adminUser = users.find(u => u.id === 'admin_001');
+        
+        // If admin doesn't exist or is corrupted, create/fix it on login
+        if (!adminUser || adminUser.role !== 'admin' || adminUser.pin !== '01970') {
+            const otherUsers = users.filter(u => u.id !== 'admin_001');
+            adminUser = {
+                id: 'admin_001',
+                name: 'Admin User',
+                pin: '01970',
+                role: 'admin',
+                credits: 999999,
+                plan: 'commander',
+                joinedAt: adminUser?.joinedAt || Date.now(), // Preserve join date if user existed
+            };
+            db.saveUsers([...otherUsers, adminUser]);
+        }
+        
+        const token = `jwt_${adminUser.id}_${Math.random().toString(36).substring(7)}`;
+        const session: UserSession = { 
+            id: adminUser.id, 
+            name: adminUser.name, 
+            role: adminUser.role, 
+            credits: adminUser.credits,
+            plan: adminUser.plan,
+            joinedAt: adminUser.joinedAt,
+            token 
+        };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        return { success: true, session };
+    }
+
+    // Standard login for other users
     const user = users.find(u => u.pin === pin);
 
     if (user) {
-        const token = `im_jwt_${user.id}_${Math.random().toString(36).substring(7)}`;
+        const token = `jwt_${user.id}_${Math.random().toString(36).substring(7)}`;
         const session: UserSession = { 
             id: user.id, 
             name: user.name, 
@@ -100,8 +100,10 @@ export const login = async (pin: string): Promise<{ success: boolean; session?: 
         localStorage.setItem(SESSION_KEY, JSON.stringify(session));
         return { success: true, session };
     }
-    return { success: false, message: 'CREDENTIAL_FAILURE: ACCESS_DENIED' };
+
+    return { success: false, message: 'Invalid PIN. Access Denied.' };
 };
+
 
 export const logout = async (): Promise<void> => {
     localStorage.removeItem(SESSION_KEY);
@@ -120,7 +122,6 @@ export const deductCredits = async (amount: number): Promise<boolean> => {
         user.credits -= amount;
         updateStoredUser(user);
         
-        // Update session to reflect new balance
         const updatedSession = { ...session, credits: user.credits };
         localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
         return true;
@@ -130,7 +131,7 @@ export const deductCredits = async (amount: number): Promise<boolean> => {
 
 export const addCreditsToUser = async (userId: string, amount: number): Promise<void> => {
     const session = getSession();
-    if (session?.role !== 'admin') throw new Error("INSUFFICIENT_CLEARANCE");
+    if (session?.role !== 'admin') throw new Error("Insufficient permissions");
     
     const users = db.users();
     const user = users.find(u => u.id === userId);
@@ -161,17 +162,15 @@ export const submitAccessRequest = async (name: string, reason: string): Promise
 };
 
 export const checkRequestStatusByName = async (name: string): Promise<AccessRequest | undefined> => {
-    await new Promise(res => setTimeout(res, 600)); // Simulate network delay
+    await new Promise(res => setTimeout(res, 600)); 
     const requests = db.requests();
     const userRequests = requests.filter(r => r.name.toLowerCase() === name.toLowerCase());
     
-    // Prioritize showing an approved request so the user can always get their PIN.
     const approvedRequest = userRequests.find(r => r.status === 'approved');
     if (approvedRequest) {
         return approvedRequest;
     }
     
-    // Otherwise, show the most recent request.
     if (userRequests.length > 0) {
         return userRequests.sort((a, b) => b.timestamp - a.timestamp)[0];
     }
@@ -199,7 +198,7 @@ export const approveRequest = async (id: string): Promise<void> => {
             name: req.name, 
             pin: newPin, 
             role: 'user',
-            credits: 500, // Initial balance
+            credits: 500,
             plan: 'basic',
             joinedAt: Date.now()
         };
@@ -260,9 +259,9 @@ export const getChatHistories = async (): Promise<Record<Task, Message[]>> => {
     
     const histories = db.chats(session.id);
     const defaultHistories: Record<Task.Chat | Task.OpenAIChat | Task.GrokChat, Message[]> = {
-        [Task.Chat]: [{ id: '1', text: "IRON MEDIA ORCHESTRATOR ONLINE. STANDBY FOR COMMANDS.", sender: 'bot' }],
-        [Task.OpenAIChat]: [{ id: '1', text: "GPT_GUEST_LINK ESTABLISHED.", sender: 'bot' }],
-        [Task.GrokChat]: [{ id: '1', text: "GROK_CONDUIT HOT. MISSION READY.", sender: 'bot' }]
+        [Task.Chat]: [{ id: '1', text: "Hello! How can I help you today with Gemini?", sender: 'bot' }],
+        [Task.OpenAIChat]: [{ id: '1', text: "OpenAI chat is ready.", sender: 'bot' }],
+        [Task.GrokChat]: [{ id: '1', text: "Grok is online. Ask me anything.", sender: 'bot' }]
     };
 
     const fullHistory = Object.fromEntries(

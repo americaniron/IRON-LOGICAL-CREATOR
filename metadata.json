@@ -1,6 +1,6 @@
 {
-  "name": "IRON MEDIA - EXPRESSION CREATION",
-  "description": "Enterprise multimedia generation and expression powered by IRON MEDIA heavy-duty generative systems.",
+  "name": "AI Creative Suite",
+  "description": "An integrated studio for generating text, images, video, and audio with leading AI models.",
   "requestFramePermissions": [
     "microphone"
   ]

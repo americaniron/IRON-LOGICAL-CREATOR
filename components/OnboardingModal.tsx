@@ -9,45 +9,45 @@ interface OnboardingModalProps {
 
 const OnboardingModal: React.FC<OnboardingModalProps> = ({ onClose }) => {
   return (
-    <Modal isOpen={true} onClose={onClose} title="System Briefing">
-      <div className="space-y-6 text-[var(--text-primary)] font-mono">
+    <Modal isOpen={true} onClose={onClose} title="Welcome to the AI Creative Suite">
+      <div className="space-y-6 text-[var(--text-primary)]">
         <div>
-            <h3 className="text-lg font-black uppercase tracking-widest text-[var(--accent-primary)] mb-2">Welcome, Commander.</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Getting Started</h3>
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                You have been granted access to the IRON MEDIA ORCHESTRATOR, an enterprise-grade suite for heavy-duty multimedia fabrication. This system interfaces with multiple AI backbones to execute your creative directives.
+                This is an integrated suite for multimedia generation. You can interface with multiple leading AI models to execute your creative tasks.
             </p>
         </div>
 
-        <div className="border-t-2 border-[var(--border-primary)] pt-4 space-y-4">
-            <h4 className="text-md font-bold uppercase tracking-wider text-[var(--text-primary)]">Core Systems:</h4>
+        <div className="border-t border-[var(--border-primary)] pt-4 space-y-4">
+            <h4 className="text-md font-bold text-[var(--text-primary)]">Available AI Services:</h4>
             <div className="space-y-3">
-                <div className="flex items-start gap-4 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)]">
-                    <div className="p-2 bg-[var(--accent-primary)] mt-1"><Gear className="h-5 w-5 text-black" /></div>
+                <div className="flex items-start gap-4 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg">
+                    <div className="p-2 bg-[var(--accent-primary)] rounded-md mt-1"><Gear className="h-5 w-5 text-white" /></div>
                     <div>
-                        <p className="font-bold text-white">IRON MEDIA (GEMINI)</p>
-                        <p className="text-xs text-[var(--text-secondary)]">The primary, high-performance engine for all core tasks. Requires a paid Google Cloud API key for advanced video and image fabrication.</p>
+                        <p className="font-semibold text-white">Google Gemini</p>
+                        <p className="text-xs text-[var(--text-secondary)]">The primary, high-performance engine for core tasks. Advanced video and image generation require a paid Google Cloud API key.</p>
                     </div>
                 </div>
-                 <div className="flex items-start gap-4 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)]">
-                    <div className="p-2 bg-[var(--accent-primary)] mt-1"><BrainCircuit className="h-5 w-5 text-black" /></div>
+                 <div className="flex items-start gap-4 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg">
+                    <div className="p-2 bg-[var(--accent-primary)] rounded-md mt-1"><BrainCircuit className="h-5 w-5 text-white" /></div>
                     <div>
-                        <p className="font-bold text-white">GUEST SYSTEMS (OPENAI)</p>
-                        <p className="text-xs text-[var(--text-secondary)]">Integrates with OpenAI models like GPT and DALL-E. Requires a separate, user-provided OpenAI API key.</p>
+                        <p className="font-semibold text-white">OpenAI</p>
+                        <p className="text-xs text-[var(--text-secondary)]">Integrates with models like GPT and DALL-E. This service requires a user-provided OpenAI API key.</p>
                     </div>
                 </div>
-                 <div className="flex items-start gap-4 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)]">
-                    <div className="p-2 bg-[var(--accent-primary)] mt-1"><XIcon className="h-5 w-5 text-black" /></div>
+                 <div className="flex items-start gap-4 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg">
+                    <div className="p-2 bg-[var(--accent-primary)] rounded-md mt-1"><XIcon className="h-5 w-5 text-white" /></div>
                     <div>
-                        <p className="font-bold text-white">X-CORP SYSTEMS (GROK)</p>
-                        <p className="text-xs text-[var(--text-secondary)]">Provides access to Grok's unfiltered AI for chat and generative tasks. Requires a separate, user-provided Grok API key.</p>
+                        <p className="font-semibold text-white">Grok</p>
+                        <p className="text-xs text-[var(--text-secondary)]">Provides access to Grok's unfiltered AI for chat and generative tasks. This service requires a user-provided Grok API key.</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div className="mt-6 flex justify-end">
-            <Button onClick={onClose} className="!py-3 !px-8 !text-base">
-                Acknowledge & Proceed
+            <Button onClick={onClose} className="!py-2 !px-6 !text-sm">
+                Get Started
             </Button>
         </div>
       </div>
