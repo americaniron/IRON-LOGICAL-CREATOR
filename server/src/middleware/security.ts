@@ -65,13 +65,30 @@ export const sanitizeOutput = (data: any): any => {
 
 // Input validation middleware
 export const validateInput = (req: Request, res: Response, next: NextFunction) => {
-  // Remove any potential script tags or dangerous content from all string inputs
+  // More robust sanitization to prevent XSS and injection attacks
   const sanitize = (obj: any): any => {
     if (typeof obj === 'string') {
-      // Remove script tags and dangerous patterns
-      return obj.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                .replace(/javascript:/gi, '')
-                .replace(/on\w+\s*=/gi, ''); // Remove event handlers like onclick=
+      // Remove all script tags and event handlers more thoroughly
+      let sanitized = obj;
+      
+      // Remove script tags (including with spaces and variations)
+      sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi, '');
+      sanitized = sanitized.replace(/<script[^>]*>.*?<\/script>/gis, '');
+      
+      // Remove all javascript: protocols
+      sanitized = sanitized.replace(/javascript:/gi, '');
+      sanitized = sanitized.replace(/data:/gi, '');
+      sanitized = sanitized.replace(/vbscript:/gi, '');
+      
+      // Remove all event handlers (on* attributes) more thoroughly
+      sanitized = sanitized.replace(/\s*on\w+\s*=/gi, '');
+      
+      // Remove potentially dangerous HTML tags
+      sanitized = sanitized.replace(/<iframe[^>]*>.*?<\/iframe>/gis, '');
+      sanitized = sanitized.replace(/<object[^>]*>.*?<\/object>/gis, '');
+      sanitized = sanitized.replace(/<embed[^>]*>/gi, '');
+      
+      return sanitized;
     }
     
     if (Array.isArray(obj)) {
