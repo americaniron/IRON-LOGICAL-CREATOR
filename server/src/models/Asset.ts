@@ -1,5 +1,4 @@
 import db from '../config/database';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface Asset {
   id: string;
@@ -29,7 +28,7 @@ export class AssetModel {
     prompt: string,
     provider: 'Gemini' | 'OpenAI' | 'Grok'
   ): Promise<Asset> {
-    const assetId = uuidv4();
+    const assetId = `${provider.toLowerCase()}_${type}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
     const result = await db.query(
       `INSERT INTO assets (id, user_id, url, type, prompt, provider, created_at) 

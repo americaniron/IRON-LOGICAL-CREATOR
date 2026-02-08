@@ -2,7 +2,7 @@
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     pin VARCHAR(255) NOT NULL UNIQUE,
     role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'user')),
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Access requests table
 CREATE TABLE IF NOT EXISTS access_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     reason TEXT NOT NULL,
     status VARCHAR(50) NOT NULL CHECK (status IN ('pending', 'approved', 'denied')),
@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS access_requests (
 
 -- Assets table (images, videos)
 CREATE TABLE IF NOT EXISTS assets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     url TEXT NOT NULL,
     type VARCHAR(50) NOT NULL CHECK (type IN ('image', 'video')),
     prompt TEXT NOT NULL,
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS assets (
 
 -- Chat messages table
 CREATE TABLE IF NOT EXISTS chat_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     task_type VARCHAR(50) NOT NULL,
     message_id VARCHAR(255) NOT NULL,
     text TEXT NOT NULL,

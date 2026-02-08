@@ -106,9 +106,16 @@ export const securityMiddleware = (req: Request, res: Response, next: NextFuncti
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
-  // In production, enforce HTTPS
-  if (config.env === 'production' && req.headers['x-forwarded-proto'] !== 'https') {
-    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  // In production, enforce HTTPS (only when behind proxy)
+  if (config.env === 'production' && config.trustProxy) {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+  } else if (config.env === 'production' && !config.trustProxy) {
+    // When not behind proxy, check req.protocol
+    if (req.protocol !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
   }
   
   next();

@@ -1,5 +1,4 @@
 import db from '../config/database';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface AccessRequest {
   id: string;
@@ -14,7 +13,7 @@ export interface AccessRequest {
 export class AccessRequestModel {
   // Create new access request
   static async create(name: string, reason: string): Promise<AccessRequest> {
-    const requestId = uuidv4();
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
     const result = await db.query(
       `INSERT INTO access_requests (id, name, reason, status, created_at, updated_at) 

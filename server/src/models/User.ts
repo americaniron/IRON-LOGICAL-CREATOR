@@ -2,7 +2,6 @@ import db from '../config/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import config from '../config';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface User {
   id: string;
@@ -60,32 +59,17 @@ export class UserModel {
   // Authenticate user with PIN
   static async authenticate(pin: string): Promise<UserSession | null> {
     try {
-      const result = await db.query(
-        'SELECT * FROM users WHERE pin = $1',
-        [pin]
-      );
-
-      if (result.rows.length === 0) {
-        // Try bcrypt comparison for hashed PINs
-        const allUsers = await db.query('SELECT * FROM users');
-        for (const user of allUsers.rows) {
-          const isMatch = await bcrypt.compare(pin, user.pin);
-          if (isMatch) {
-            return this.createSession(user);
-          }
-        }
-        return null;
-      }
-
-      const user = result.rows[0];
+      // All PINs should be hashed with bcrypt
+      const allUsers = await db.query('SELECT * FROM users');
       
-      // If PIN is not hashed yet, hash it
-      if (!user.pin.startsWith('$2')) {
-        const hashedPin = await bcrypt.hash(pin, config.bcrypt.rounds);
-        await db.query('UPDATE users SET pin = $1 WHERE id = $2', [hashedPin, user.id]);
+      for (const user of allUsers.rows) {
+        const isMatch = await bcrypt.compare(pin, user.pin);
+        if (isMatch) {
+          return this.createSession(user);
+        }
       }
-
-      return this.createSession(user);
+      
+      return null;
     } catch (error) {
       console.error('Authentication error:', error);
       throw error;
@@ -148,7 +132,7 @@ export class UserModel {
   // Create new user (for approved requests)
   static async create(name: string, pin: string, role: 'admin' | 'user' = 'user'): Promise<User> {
     const hashedPin = await bcrypt.hash(pin, config.bcrypt.rounds);
-    const userId = uuidv4();
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
     const result = await db.query(
       `INSERT INTO users (id, name, pin, role, credits, plan, joined_at) 

@@ -1,5 +1,6 @@
 import { Pool, PoolClient } from 'pg';
 import config from './index';
+import { logger } from '../middleware/logger';
 
 class Database {
   private pool: Pool;
@@ -51,7 +52,7 @@ class Database {
       const duration = Date.now() - start;
       
       if (config.env === 'development' && duration > 100) {
-        console.warn(`Slow query (${duration}ms):`, text);
+        logger.warn('Slow query detected', { duration: `${duration}ms`, query: text });
       }
       
       return result;

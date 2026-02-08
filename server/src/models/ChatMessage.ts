@@ -1,5 +1,4 @@
 import db from '../config/database';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface ChatMessage {
   id: string;
@@ -50,7 +49,7 @@ export class ChatMessageModel {
     text: string,
     sender: 'user' | 'bot'
   ): Promise<ChatMessage> {
-    const id = uuidv4();
+    const id = `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
     const result = await db.query(
       `INSERT INTO chat_messages (id, user_id, task_type, message_id, text, sender, created_at) 
