@@ -1,6 +1,12 @@
 import helmet from 'helmet';
 import { Request, Response, NextFunction } from 'express';
 import config from '../config';
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+// Create a DOMPurify instance for server-side use
+const window = new JSDOM('').window;
+const purify = DOMPurify(window as unknown as Window);
 
 // Security headers middleware
 export const securityHeaders = helmet({
@@ -65,30 +71,16 @@ export const sanitizeOutput = (data: any): any => {
 
 // Input validation middleware
 export const validateInput = (req: Request, res: Response, next: NextFunction) => {
-  // More robust sanitization to prevent XSS and injection attacks
+  // Use DOMPurify for robust XSS protection
   const sanitize = (obj: any): any => {
     if (typeof obj === 'string') {
-      // Remove all script tags and event handlers more thoroughly
-      let sanitized = obj;
-      
-      // Remove script tags (including with spaces and variations)
-      sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi, '');
-      sanitized = sanitized.replace(/<script[^>]*>.*?<\/script>/gis, '');
-      
-      // Remove all javascript: protocols
-      sanitized = sanitized.replace(/javascript:/gi, '');
-      sanitized = sanitized.replace(/data:/gi, '');
-      sanitized = sanitized.replace(/vbscript:/gi, '');
-      
-      // Remove all event handlers (on* attributes) more thoroughly
-      sanitized = sanitized.replace(/\s*on\w+\s*=/gi, '');
-      
-      // Remove potentially dangerous HTML tags
-      sanitized = sanitized.replace(/<iframe[^>]*>.*?<\/iframe>/gis, '');
-      sanitized = sanitized.replace(/<object[^>]*>.*?<\/object>/gis, '');
-      sanitized = sanitized.replace(/<embed[^>]*>/gi, '');
-      
-      return sanitized;
+      // Use DOMPurify to sanitize HTML content
+      // This properly handles all XSS vectors including script tags, event handlers, etc.
+      return purify.sanitize(obj, {
+        ALLOWED_TAGS: [], // Strip all HTML tags
+        ALLOWED_ATTR: [], // Strip all attributes
+        KEEP_CONTENT: true, // Keep text content
+      });
     }
     
     if (Array.isArray(obj)) {
